@@ -1,19 +1,10 @@
-from __future__ import annotations
+"""Compatibility alias for the provider moved to template_assets."""
 
-from typing import Protocol, Sequence
+from template_assets.ports.provider import TemplateProvider
 
-from template_matching.domain.models import Template
+TemplateRepository = TemplateProvider
 
-
-class TemplateRepository(Protocol):
-    def get(self, key: str) -> Template | None:
-        ...
-
-    def require(self, key: str) -> Template:
-        ...
-
-    def require_many(
-        self,
-        keys: Sequence[str],
-    ) -> list[Template]:
-        ...
+__all__ = [
+    "TemplateProvider",
+    "TemplateRepository",
+]
