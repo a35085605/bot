@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from template_matching.domain.models import (
+from template_assets.domain.models import (
     GrayImage,
     Template,
 )
+from template_assets.ports.provider import TemplateProvider
 from template_matching.domain.results import (
     EvaluatedMatches,
     MatchCandidate,
@@ -16,13 +17,12 @@ from template_matching.domain.suppression import (
     MatchSuppressionPolicy,
 )
 from template_matching.ports.engine import TemplateMatchEngine
-from template_matching.ports.repository import TemplateRepository
 
 
 class TemplateMatchingService:
     def __init__(
         self,
-        repository: TemplateRepository,
+        repository: TemplateProvider,
         engine: TemplateMatchEngine,
         suppression: MatchSuppressionPolicy,
     ) -> None:
