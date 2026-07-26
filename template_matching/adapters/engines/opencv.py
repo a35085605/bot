@@ -29,7 +29,7 @@ class OpenCVTemplateMatchEngine:
     within the domain's unit-score range without changing positive
     correlation thresholds.
 
-    OpenCV mask support is intentionally restricted to
+    OpenCV validity-mask support is intentionally restricted to
     ``TM_CCORR_NORMED``. Suppression, result limits, and business acceptance
     thresholds belong outside this adapter.
     """
@@ -41,7 +41,7 @@ class OpenCVTemplateMatchEngine:
             cv2.TM_SQDIFF_NORMED,
         }
     )
-    _MASK_SUPPORTED_METHODS = frozenset(
+    _VALIDITY_MASK_SUPPORTED_METHODS = frozenset(
         {
             cv2.TM_CCORR_NORMED,
         }
@@ -91,23 +91,20 @@ class OpenCVTemplateMatchEngine:
         ):
             return ()
 
-        self._validate_mask_support(template)
+        self._validate_validity_mask_support(template)
 
         image_input = np.ascontiguousarray(image)
         template_input = np.ascontiguousarray(template.gray)
-        mask_input = (
+        validity_mask_input = (
             None
-            if template.mask is None
+            if template.validity_mask is None
             else np.ascontiguousarray(
-                np.where(template.mask != 0, 255, 0).astype(
-                    np.uint8,
-                    copy=False,
-                )
+                template.validity_mask
             )
         )
 
         try:
-            if mask_input is None:
+            if validity_mask_input is None:
                 raw_scores = cv2.matchTemplate(
                     image_input,
                     template_input,
@@ -118,7 +115,7 @@ class OpenCVTemplateMatchEngine:
                     image_input,
                     template_input,
                     self._method,
-                    mask=mask_input,
+                    mask=validity_mask_input,
                 )
         except cv2.error as exc:
             raise RuntimeError(
@@ -163,20 +160,20 @@ class OpenCVTemplateMatchEngine:
         # Keep OpenCV's NaN/Inf outputs from becoming valid candidates.
         return np.where(finite, normalized, np.nan)
 
-    def _validate_mask_support(
+    def _validate_validity_mask_support(
         self,
         template: Template,
     ) -> None:
-        if template.mask is None:
+        if template.validity_mask is None:
             return
 
-        if self._method in self._MASK_SUPPORTED_METHODS:
+        if self._method in self._VALIDITY_MASK_SUPPORTED_METHODS:
             return
 
         raise ValueError(
-            "template masks are not supported with "
+            "template validity masks are not supported with "
             f"{self._method_name(self._method)}; "
-            "use TM_CCORR_NORMED or remove the mask"
+            "use TM_CCORR_NORMED or remove the validity mask"
         )
 
     @classmethod
