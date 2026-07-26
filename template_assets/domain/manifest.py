@@ -5,10 +5,20 @@ from datetime import datetime
 import re
 
 from template_assets.domain.keys import normalize_template_key
-from template_assets.domain.locators import TemplateLocator
+from template_assets.domain.locators import (
+    FileLocator,
+    HttpLocator,
+    PackageLocator,
+    TemplateLocator,
+)
 
 
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+_TEMPLATE_LOCATOR_TYPES = (
+    FileLocator,
+    HttpLocator,
+    PackageLocator,
+)
 
 
 def _normalize_optional_text(
@@ -38,10 +48,7 @@ class TemplateStorageDefinition:
     media_type: str | None = None
 
     def __post_init__(self) -> None:
-        if not isinstance(
-            self.locator,
-            TemplateLocator.__args__,
-        ):
+        if not isinstance(self.locator, _TEMPLATE_LOCATOR_TYPES):
             raise TypeError(
                 "storage locator must be a supported template locator"
             )
