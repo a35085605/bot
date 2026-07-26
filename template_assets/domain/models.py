@@ -10,6 +10,7 @@ from template_assets.domain.keys import normalize_template_key
 
 
 GrayImage: TypeAlias = npt.NDArray[np.uint8]
+ValidityMask: TypeAlias = npt.NDArray[np.uint8]
 
 
 def _freeze_gray_image(
@@ -57,7 +58,8 @@ class Template:
 
     A Template contains decoded image data only. Storage locators and
     provenance belong to TemplateManifestEntry, while matching policy belongs
-    to the matching use case.
+    to the matching use case. Non-zero validity-mask pixels are normalized to
+    255 and participate in matching; zero pixels are ignored.
     """
 
     key: str
@@ -66,7 +68,7 @@ class Template:
         hash=False,
         repr=False,
     )
-    mask: GrayImage | None = field(
+    validity_mask: ValidityMask | None = field(
         default=None,
         compare=False,
         hash=False,
@@ -79,40 +81,53 @@ class Template:
             self.gray,
             field_name="template gray image",
         )
-        mask: GrayImage | None = None
+        validity_mask: ValidityMask | None = None
 
-        if self.mask is not None:
-            if not isinstance(self.mask, np.ndarray):
+        if self.validity_mask is not None:
+            if not isinstance(self.validity_mask, np.ndarray):
                 raise TypeError(
-                    "template mask must be a numpy array"
+                    "template validity mask must be a numpy array"
                 )
 
-            if self.mask.dtype != np.uint8:
+            if self.validity_mask.dtype != np.uint8:
                 raise TypeError(
-                    "template mask must be uint8, "
-                    f"got {self.mask.dtype}"
+                    "template validity mask must be uint8, "
+                    f"got {self.validity_mask.dtype}"
                 )
 
-            if self.mask.ndim != 2:
+            if self.validity_mask.ndim != 2:
                 raise ValueError(
-                    "template mask must be 2D, "
-                    f"got {self.mask.shape}"
+                    "template validity mask must be 2D, "
+                    f"got {self.validity_mask.shape}"
                 )
 
-            if self.mask.shape != gray.shape:
+            if self.validity_mask.shape != gray.shape:
                 raise ValueError(
-                    "template mask shape must equal gray image shape"
+                    "template validity mask shape must equal "
+                    "gray image shape"
                 )
 
-            mask = _freeze_gray_image(
-                self.mask,
-                field_name="template mask",
+            binary_mask = np.where(
+                self.validity_mask != 0,
+                255,
+                0,
+            ).astype(
+                np.uint8,
+                copy=False,
+            )
+            validity_mask = _freeze_gray_image(
+                binary_mask,
+                field_name="template validity mask",
                 reject_all_zero=True,
             )
 
         object.__setattr__(self, "key", key)
         object.__setattr__(self, "gray", gray)
-        object.__setattr__(self, "mask", mask)
+        object.__setattr__(
+            self,
+            "validity_mask",
+            validity_mask,
+        )
 
     @property
     def width(self) -> int:
