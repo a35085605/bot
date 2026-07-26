@@ -13,6 +13,6 @@ class TemplateDecoder(Protocol):
         *,
         key: str,
         content: bytes,
-        mask_content: bytes | None = None,
+        validity_mask_content: bytes | None = None,
     ) -> Template:
         ...

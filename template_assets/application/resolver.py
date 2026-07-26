@@ -57,15 +57,17 @@ class TemplateResolver:
         entry: TemplateManifestEntry,
     ) -> Template:
         content = self._read_verified(entry.storage)
-        mask_content = (
+        validity_mask_content = (
             None
-            if entry.mask_storage is None
-            else self._read_verified(entry.mask_storage)
+            if entry.validity_mask_storage is None
+            else self._read_verified(
+                entry.validity_mask_storage
+            )
         )
         template = self._decoder.decode(
             key=entry.key,
             content=content,
-            mask_content=mask_content,
+            validity_mask_content=validity_mask_content,
         )
         if template.key != entry.key:
             raise ValueError(

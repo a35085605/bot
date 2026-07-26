@@ -50,7 +50,7 @@ class _Decoder:
         *,
         key: str,
         content: bytes,
-        mask_content: bytes | None = None,
+        validity_mask_content: bytes | None = None,
     ) -> Template:
         return Template(
             key=key,
@@ -71,11 +71,42 @@ class TemplateAssetsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             template.gray.setflags(write=True)
 
+    def test_template_normalizes_validity_mask(self) -> None:
+        source = np.array(
+            [[0, 1], [2, 255]],
+            dtype=np.uint8,
+        )
+        template = Template(
+            key="submit",
+            gray=np.array(
+                [[1, 2], [3, 4]],
+                dtype=np.uint8,
+            ),
+            validity_mask=source,
+        )
+
+        source[0, 1] = 0
+
+        np.testing.assert_array_equal(
+            template.validity_mask,
+            np.array(
+                [[0, 255], [255, 255]],
+                dtype=np.uint8,
+            ),
+        )
+        self.assertFalse(template.validity_mask.flags.writeable)
+        with self.assertRaises(ValueError):
+            template.validity_mask.setflags(write=True)
+
     def test_manifest_keeps_storage_and_provenance_outside_template(self) -> None:
         entry = TemplateManifestEntry(
             key="submit",
             storage=TemplateStorageDefinition(
                 locator=FileLocator("assets/submit.png"),
+                media_type="image/png",
+            ),
+            validity_mask_storage=TemplateStorageDefinition(
+                locator=FileLocator("assets/submit-mask.png"),
                 media_type="image/png",
             ),
             provenance=TemplateProvenance(
@@ -85,6 +116,10 @@ class TemplateAssetsTest(unittest.TestCase):
 
         self.assertEqual(entry.key, "submit")
         self.assertEqual(entry.storage.locator.path, "assets/submit.png")
+        self.assertEqual(
+            entry.validity_mask_storage.locator.path,
+            "assets/submit-mask.png",
+        )
         self.assertEqual(entry.provenance.source, "login screen capture")
 
     def test_resolver_verifies_content_and_returns_template(self) -> None:

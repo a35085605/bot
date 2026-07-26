@@ -107,7 +107,7 @@ class TemplateManifestEntry:
 
     key: str
     storage: TemplateStorageDefinition
-    mask_storage: TemplateStorageDefinition | None = None
+    validity_mask_storage: TemplateStorageDefinition | None = None
     provenance: TemplateProvenance = field(
         default_factory=TemplateProvenance
     )
@@ -118,12 +118,12 @@ class TemplateManifestEntry:
             raise TypeError(
                 "manifest storage must be TemplateStorageDefinition"
             )
-        if self.mask_storage is not None and not isinstance(
-            self.mask_storage,
+        if self.validity_mask_storage is not None and not isinstance(
+            self.validity_mask_storage,
             TemplateStorageDefinition,
         ):
             raise TypeError(
-                "manifest mask_storage must be "
+                "manifest validity_mask_storage must be "
                 "TemplateStorageDefinition or None"
             )
         if not isinstance(self.provenance, TemplateProvenance):

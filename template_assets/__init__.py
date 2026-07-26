@@ -9,7 +9,11 @@ from template_assets.domain.manifest import (
     TemplateProvenance,
     TemplateStorageDefinition,
 )
-from template_assets.domain.models import GrayImage, Template
+from template_assets.domain.models import (
+    GrayImage,
+    Template,
+    ValidityMask,
+)
 
 __all__ = [
     "FileLocator",
@@ -21,4 +25,5 @@ __all__ = [
     "TemplateManifestEntry",
     "TemplateProvenance",
     "TemplateStorageDefinition",
+    "ValidityMask",
 ]
