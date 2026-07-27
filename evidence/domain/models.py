@@ -7,7 +7,7 @@ from numbers import Real
 from typing import Generic, TypeVar
 
 from geometry.rect import Rect
-from world_model.models import FrameId
+from observation import FrameId
 
 
 ResultT = TypeVar("ResultT", covariant=True)
