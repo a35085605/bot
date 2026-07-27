@@ -4,8 +4,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from geometry.rect import Rect
-from template_matching.domain.keys import normalize_template_key
-from template_matching.domain.scores import normalize_unit_score
+from vision.template_matching.domain.keys import normalize_template_key
+from vision.template_matching.domain.scores import normalize_unit_score
 
 
 def _normalize_candidates(

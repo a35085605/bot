@@ -7,16 +7,16 @@ from template_assets.domain.models import (
     Template,
 )
 from template_assets.ports.provider import TemplateProvider
-from template_matching.domain.results import (
+from vision.template_matching.domain.results import (
     EvaluatedMatches,
     MatchCandidate,
     TemplateMatchResult,
 )
-from template_matching.domain.scores import normalize_unit_score
-from template_matching.domain.suppression import (
+from vision.template_matching.domain.scores import normalize_unit_score
+from vision.template_matching.domain.suppression import (
     MatchSuppressionPolicy,
 )
-from template_matching.ports.engine import TemplateMatchEngine
+from vision.template_matching.ports.engine import TemplateMatchEngine
 
 
 class TemplateMatchingService:

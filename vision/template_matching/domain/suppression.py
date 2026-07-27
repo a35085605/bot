@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from numbers import Integral
 from typing import Protocol
 
-from template_matching.domain.results import MatchCandidate
-from template_matching.domain.scores import normalize_unit_score
+from vision.template_matching.domain.results import MatchCandidate
+from vision.template_matching.domain.scores import normalize_unit_score
 
 
 class MatchSuppressionPolicy(Protocol):

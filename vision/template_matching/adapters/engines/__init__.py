@@ -1,4 +1,4 @@
-from template_matching.adapters.engines.opencv import (
+from vision.template_matching.adapters.engines.opencv import (
     OpenCVTemplateMatchEngine,
 )
 

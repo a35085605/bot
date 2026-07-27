@@ -16,10 +16,10 @@ from template_assets.domain.manifest import (
     TemplateStorageDefinition,
 )
 from template_assets.domain.models import Template
-from template_matching.adapters.repositories.in_memory import (
+from vision.template_matching.adapters.repositories.in_memory import (
     InMemoryTemplateRepository,
 )
-from template_matching.domain.models import Template as LegacyTemplate
+from vision.template_matching.domain.models import Template as LegacyTemplate
 
 
 class _ManifestRepository:
