@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from numbers import Integral
 
+from observation import FrameId
 from world_model.identities import (
     ControlKey,
     IndicatorKey,
@@ -14,7 +15,6 @@ from world_model.identities import (
 from world_model.models import (
     Confidence,
     ControlObservation,
-    FrameId,
     IndicatorObservation,
     ValueObservation,
     WorldSnapshot,
@@ -280,6 +280,10 @@ class WorldStateTracker:
         if current.source_id != previous.source_id:
             raise ValueError(
                 "world state tracker cannot mix frame sources"
+            )
+        if current.stream_id != previous.stream_id:
+            raise ValueError(
+                "world state tracker cannot mix capture streams"
             )
         if current.frame_id.value <= previous.frame_id.value:
             raise ValueError(

@@ -4,13 +4,19 @@ from datetime import datetime, timedelta, timezone
 import unittest
 
 from geometry.rect import Rect
-from world_model import (
+from observation import (
     CaptureQuality,
+    CaptureStreamId,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+    WindowContext,
+)
+from world_model import (
     Confidence,
     ControlKey,
     ControlObservation,
-    FrameId,
-    FrameInfo,
     Presence,
     SceneHypothesis,
     SceneKey,
@@ -42,6 +48,7 @@ class WorldModelTest(unittest.TestCase):
         return WorldSnapshot(
             frame=FrameInfo(
                 frame_id=FrameId(frame_id),
+                stream_id=CaptureStreamId("capture-session-1"),
                 captured_at=datetime(
                     2026,
                     7,
@@ -58,6 +65,23 @@ class WorldModelTest(unittest.TestCase):
                     height=1080,
                 ),
                 source_id="game-window",
+                window=WindowContext(
+                    window_id="hwnd:42",
+                    client_bounds_screen=Rect(
+                        x=100,
+                        y=200,
+                        width=1920,
+                        height=1080,
+                    ),
+                    is_foreground=True,
+                ),
+                root_to_screen=CoordinateTransform(
+                    source=CoordinateSpace.ROOT,
+                    target=CoordinateSpace.SCREEN,
+                    offset_x=100,
+                    offset_y=200,
+                ),
+                capture_backend="test.capture",
             ),
             quality=CaptureQuality(usable=usable),
             scene=SceneObservation(
@@ -176,6 +200,31 @@ class WorldModelTest(unittest.TestCase):
         self.assertEqual(state.scene, result)
         self.assertEqual(state.previous_scene, battle)
         self.assertTrue(state.transition_detected)
+
+    def test_tracker_rejects_mixed_capture_streams(self) -> None:
+        tracker = WorldStateTracker(scene_confirmation_frames=1)
+        tracker.update(self._snapshot(1, SceneKey("battle")))
+
+        snapshot = self._snapshot(2, SceneKey("battle"))
+        frame = FrameInfo(
+            frame_id=snapshot.frame.frame_id,
+            stream_id=CaptureStreamId("capture-session-2"),
+            captured_at=snapshot.frame.captured_at,
+            root_bounds=snapshot.frame.root_bounds,
+            source_id=snapshot.frame.source_id,
+            window=snapshot.frame.window,
+            root_to_screen=snapshot.frame.root_to_screen,
+            capture_backend=snapshot.frame.capture_backend,
+        )
+
+        with self.assertRaises(ValueError):
+            tracker.update(
+                WorldSnapshot(
+                    frame=frame,
+                    quality=snapshot.quality,
+                    scene=snapshot.scene,
+                )
+            )
 
     def test_tracker_rejects_out_of_order_frames(self) -> None:
         tracker = WorldStateTracker(scene_confirmation_frames=1)

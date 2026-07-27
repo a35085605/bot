@@ -5,11 +5,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 import math
-from numbers import Integral, Real
+from numbers import Real
 from types import MappingProxyType
 from typing import TypeAlias
 
 from geometry.rect import Rect
+from observation import CaptureQuality, FrameId, FrameInfo
 from world_model.identities import (
     ControlKey,
     IndicatorKey,
@@ -44,45 +45,6 @@ def _normalize_unit_value(
     return normalized
 
 
-def _normalize_non_empty_text(
-    value: object,
-    *,
-    field_name: str,
-) -> str:
-    if not isinstance(value, str):
-        raise TypeError(
-            f"{field_name} must be a string, "
-            f"got {type(value).__name__}"
-        )
-
-    normalized = value.strip()
-    if not normalized:
-        raise ValueError(f"{field_name} cannot be empty")
-
-    return normalized
-
-
-@dataclass(frozen=True, slots=True, order=True)
-class FrameId:
-    value: int
-
-    def __post_init__(self) -> None:
-        if isinstance(self.value, bool) or not isinstance(
-            self.value,
-            Integral,
-        ):
-            raise TypeError(
-                "frame id must be an integer, "
-                f"got {type(self.value).__name__}"
-            )
-
-        normalized = int(self.value)
-        if normalized < 0:
-            raise ValueError("frame id cannot be negative")
-
-        object.__setattr__(self, "value", normalized)
-
-
 @dataclass(frozen=True, slots=True)
 class Confidence:
     value: float
@@ -102,54 +64,6 @@ class Presence(str, Enum):
     PRESENT = "present"
     ABSENT = "absent"
     UNKNOWN = "unknown"
-
-
-@dataclass(frozen=True, slots=True)
-class FrameInfo:
-    frame_id: FrameId
-    captured_at: datetime
-    root_bounds: Rect
-    source_id: str
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.frame_id, FrameId):
-            raise TypeError("frame_id must be FrameId")
-        if not isinstance(self.captured_at, datetime):
-            raise TypeError("captured_at must be datetime")
-        if self.captured_at.utcoffset() is None:
-            raise ValueError("captured_at must be timezone-aware")
-        if not isinstance(self.root_bounds, Rect):
-            raise TypeError("root_bounds must be Rect")
-
-        object.__setattr__(
-            self,
-            "source_id",
-            _normalize_non_empty_text(
-                self.source_id,
-                field_name="frame source id",
-            ),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class CaptureQuality:
-    usable: bool
-    sharpness: float | None = None
-    occluded: bool = False
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.usable, bool):
-            raise TypeError("capture usable must be bool")
-        if not isinstance(self.occluded, bool):
-            raise TypeError("capture occluded must be bool")
-
-        sharpness = self.sharpness
-        if sharpness is not None:
-            sharpness = _normalize_unit_value(
-                sharpness,
-                field_name="capture sharpness",
-            )
-            object.__setattr__(self, "sharpness", sharpness)
 
 
 @dataclass(frozen=True, slots=True)
