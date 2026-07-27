@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from template_assets.domain.models import Template
+from vision.template_assets.domain.models import Template
 
 
 class TemplateDecoder(Protocol):

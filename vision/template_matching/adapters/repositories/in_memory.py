@@ -1,6 +1,6 @@
 """Compatibility alias for the provider moved to template_assets."""
 
-from template_assets.adapters.providers.in_memory import (
+from vision.template_assets.adapters.providers.in_memory import (
     InMemoryTemplateProvider,
 )
 

@@ -5,17 +5,17 @@ import unittest
 
 import numpy as np
 
-from template_assets.adapters.providers.in_memory import (
+from vision.template_assets.adapters.providers.in_memory import (
     InMemoryTemplateProvider,
 )
-from template_assets.application.resolver import TemplateResolver
-from template_assets.domain.locators import FileLocator
-from template_assets.domain.manifest import (
+from vision.template_assets.application.resolver import TemplateResolver
+from vision.template_assets.domain.locators import FileLocator
+from vision.template_assets.domain.manifest import (
     TemplateManifestEntry,
     TemplateProvenance,
     TemplateStorageDefinition,
 )
-from template_assets.domain.models import Template
+from vision.template_assets.domain.models import Template
 from vision.template_matching.adapters.repositories.in_memory import (
     InMemoryTemplateRepository,
 )

@@ -6,7 +6,7 @@ from typing import TypeAlias
 import numpy as np
 import numpy.typing as npt
 
-from template_assets.domain.keys import normalize_template_key
+from vision.template_assets.domain.keys import normalize_template_key
 
 
 GrayImage: TypeAlias = npt.NDArray[np.uint8]

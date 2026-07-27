@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from geometry.rect import Rect
-from template_assets.domain.models import GrayImage, Template
+from vision.template_assets.domain.models import GrayImage, Template
 from vision.template_matching.domain.results import MatchCandidate
 from vision.template_matching.domain.scores import normalize_unit_score
 

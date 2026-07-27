@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from template_assets.domain.models import GrayImage, Template
+from vision.template_assets.domain.models import GrayImage, Template
 from vision.template_matching.domain.results import MatchCandidate
 
 

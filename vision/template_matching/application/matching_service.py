@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from template_assets.domain.models import (
+from vision.template_assets.domain.models import (
     GrayImage,
     Template,
 )
-from template_assets.ports.provider import TemplateProvider
+from vision.template_assets.ports.provider import TemplateProvider
 from vision.template_matching.domain.results import (
     EvaluatedMatches,
     MatchCandidate,

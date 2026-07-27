@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from template_assets.domain.locators import TemplateLocator
+from vision.template_assets.domain.locators import TemplateLocator
 
 
 class TemplateContentReader(Protocol):

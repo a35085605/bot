@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import re
 
-from template_assets.domain.keys import normalize_template_key
-from template_assets.domain.locators import (
+from vision.template_assets.domain.keys import normalize_template_key
+from vision.template_assets.domain.locators import (
     FileLocator,
     HttpLocator,
     PackageLocator,

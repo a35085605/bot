@@ -3,14 +3,14 @@ from __future__ import annotations
 import hashlib
 from typing import Sequence
 
-from template_assets.domain.manifest import (
+from vision.template_assets.domain.manifest import (
     TemplateManifestEntry,
     TemplateStorageDefinition,
 )
-from template_assets.domain.models import Template
-from template_assets.ports.content_reader import TemplateContentReader
-from template_assets.ports.decoder import TemplateDecoder
-from template_assets.ports.manifest_repository import (
+from vision.template_assets.domain.models import Template
+from vision.template_assets.ports.content_reader import TemplateContentReader
+from vision.template_assets.ports.decoder import TemplateDecoder
+from vision.template_assets.ports.manifest_repository import (
     TemplateManifestRepository,
 )
 

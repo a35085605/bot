@@ -1,16 +1,16 @@
-from template_assets.domain.keys import normalize_template_key
-from template_assets.domain.locators import (
+from vision.template_assets.domain.keys import normalize_template_key
+from vision.template_assets.domain.locators import (
     FileLocator,
     HttpLocator,
     PackageLocator,
     TemplateLocator,
 )
-from template_assets.domain.manifest import (
+from vision.template_assets.domain.manifest import (
     TemplateManifestEntry,
     TemplateProvenance,
     TemplateStorageDefinition,
 )
-from template_assets.domain.models import (
+from vision.template_assets.domain.models import (
     GrayImage,
     Template,
     ValidityMask,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-from template_assets.domain.keys import normalize_template_key
-from template_assets.domain.models import Template
+from vision.template_assets.domain.keys import normalize_template_key
+from vision.template_assets.domain.models import Template
 
 
 class InMemoryTemplateProvider:
