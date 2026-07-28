@@ -64,6 +64,8 @@ class ObservationTest(unittest.TestCase):
 
         self.assertEqual(info.stream_id.value, "session-1")
         self.assertEqual(info.source_id, "game-window")
+        self.assertIsNotNone(info.window)
+        assert info.window is not None
         self.assertEqual(info.window.window_id, "hwnd:42")
         self.assertEqual(info.window.title, "Example Game")
         self.assertEqual(info.capture_backend, "dxgi")
@@ -90,29 +92,55 @@ class ObservationTest(unittest.TestCase):
             Point(x=10, y=20),
         )
 
-    def test_frame_requires_capture_inside_window_client(self) -> None:
-        with self.assertRaises(ValueError):
-            FrameInfo(
-                frame_id=FrameId(1),
-                stream_id=CaptureStreamId("session-1"),
-                captured_at=datetime.now(timezone.utc),
-                root_bounds=Rect(x=0, y=0, width=100, height=100),
-                source_id="game-window",
-                window=WindowContext(
-                    window_id="hwnd:42",
-                    client_bounds_screen=Rect(
-                        x=0,
-                        y=0,
-                        width=50,
-                        height=50,
-                    ),
+    def test_frame_can_describe_desktop_capture_without_window(self) -> None:
+        info = FrameInfo(
+            frame_id=FrameId(1),
+            stream_id=CaptureStreamId("session-1"),
+            captured_at=datetime.now(timezone.utc),
+            root_bounds=Rect(x=0, y=0, width=1920, height=1080),
+            source_id="desktop-1",
+            window=None,
+            root_to_screen=CoordinateTransform(
+                source=CoordinateSpace.ROOT,
+                target=CoordinateSpace.SCREEN,
+                offset_x=-1920,
+            ),
+            capture_backend="test.desktop",
+        )
+
+        self.assertIsNone(info.window)
+        self.assertEqual(
+            info.capture_bounds_screen,
+            Rect(x=-1920, y=0, width=1920, height=1080),
+        )
+
+    def test_frame_capture_may_extend_outside_related_window(self) -> None:
+        info = FrameInfo(
+            frame_id=FrameId(1),
+            stream_id=CaptureStreamId("session-1"),
+            captured_at=datetime.now(timezone.utc),
+            root_bounds=Rect(x=0, y=0, width=100, height=100),
+            source_id="desktop-region",
+            window=WindowContext(
+                window_id="hwnd:42",
+                client_bounds_screen=Rect(
+                    x=25,
+                    y=25,
+                    width=50,
+                    height=50,
                 ),
-                root_to_screen=CoordinateTransform(
-                    source=CoordinateSpace.ROOT,
-                    target=CoordinateSpace.SCREEN,
-                ),
-                capture_backend="test.capture",
-            )
+            ),
+            root_to_screen=CoordinateTransform(
+                source=CoordinateSpace.ROOT,
+                target=CoordinateSpace.SCREEN,
+            ),
+            capture_backend="test.capture",
+        )
+
+        self.assertEqual(
+            info.capture_bounds_screen,
+            Rect(x=0, y=0, width=100, height=100),
+        )
 
     def test_captured_frame_owns_immutable_pixels(self) -> None:
         source = np.arange(5000, dtype=np.uint8).reshape(50, 100)
