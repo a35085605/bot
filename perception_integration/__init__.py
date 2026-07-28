@@ -1,3 +1,17 @@
+from content import (
+    CapturedContent,
+    ConfiguredContentCropExtractor,
+    ContentExtractionMethod,
+    ContentExtractionProvenance,
+    ContentExtractionResult,
+    ContentExtractor,
+    ContentFailureReason,
+    ContentFrame,
+    ContentPlacementInCapture,
+    ContentUnavailable,
+    IdentityContentExtractor,
+    extract_content,
+)
 from detector_input import DetectorInputContext, ImagePlacement
 from perception_integration.bridge import EvidenceAssembler
 from perception_integration.viewport import (
@@ -15,11 +29,22 @@ from perception_integration.viewport import (
 from viewport import CanonicalViewport, ContentPlacement, ViewportPlacement
 
 __all__ = [
+    "CapturedContent",
     "CanonicalViewport",
+    "ConfiguredContentCropExtractor",
     "ConfiguredCropViewportExtractor",
+    "ContentExtractionMethod",
+    "ContentExtractionProvenance",
+    "ContentExtractionResult",
+    "ContentExtractor",
+    "ContentFailureReason",
+    "ContentFrame",
     "ContentPlacement",
+    "ContentPlacementInCapture",
+    "ContentUnavailable",
     "DetectorInputContext",
     "EvidenceAssembler",
+    "IdentityContentExtractor",
     "IdentityViewportExtractor",
     "ImagePlacement",
     "PerceptionViewport",
@@ -30,5 +55,6 @@ __all__ = [
     "ViewportPlacement",
     "ViewportProvenance",
     "ViewportUnavailable",
+    "extract_content",
     "extract_viewport",
 ]

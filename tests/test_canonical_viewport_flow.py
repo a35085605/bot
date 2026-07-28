@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
+from content import ContentFrame, ContentPlacementInCapture
 from evidence import EvidenceSet
-from geometry.point import Point
 from geometry.rect import Rect
 from observation import (
     CaptureQuality,
@@ -18,18 +18,17 @@ from semantic_perception import (
     SemanticPerceptionConfig,
     SemanticSnapshotBuilder,
 )
-from viewport import CanonicalViewport, ContentPlacement
 
 
-class CanonicalViewportFlowTest(unittest.TestCase):
-    def _observation(self) -> FrameInfo:
+class ContentFlowTest(unittest.TestCase):
+    def _capture(self) -> FrameInfo:
         return FrameInfo(
             frame_id=FrameId(3),
             stream_id=CaptureStreamId("session-1"),
             captured_at=datetime(
                 2026,
                 7,
-                28,
+                29,
                 12,
                 0,
                 tzinfo=timezone.utc,
@@ -46,11 +45,11 @@ class CanonicalViewportFlowTest(unittest.TestCase):
             capture_backend="test.capture",
         )
 
-    def _viewport(self) -> CanonicalViewport:
-        return CanonicalViewport(
-            observation=self._observation(),
-            placement=ContentPlacement(
-                source_bounds_capture=Rect(
+    def _content(self) -> ContentFrame:
+        return ContentFrame(
+            capture=self._capture(),
+            placement=ContentPlacementInCapture(
+                bounds_capture=Rect(
                     x=160,
                     y=120,
                     width=1600,
@@ -59,18 +58,18 @@ class CanonicalViewportFlowTest(unittest.TestCase):
             ),
         )
 
-    def test_world_snapshot_uses_content_viewport_frame(self) -> None:
-        viewport = self._viewport()
+    def test_world_snapshot_uses_content_frame(self) -> None:
+        content = self._content()
         evidence_set = EvidenceSet(
-            frame_id=viewport.frame.frame_id,
-            source_id=viewport.frame.source_id,
-            root_bounds=viewport.root_bounds,
+            frame_id=content.frame.frame_id,
+            source_id=content.frame.source_id,
+            root_bounds=content.bounds_content,
         )
 
         snapshot = SemanticSnapshotBuilder(
             SemanticPerceptionConfig()
         ).build(
-            viewport=viewport,
+            content=content,
             quality=CaptureQuality(usable=True),
             evidence_set=evidence_set,
         )
@@ -81,42 +80,38 @@ class CanonicalViewportFlowTest(unittest.TestCase):
         )
         self.assertNotEqual(
             snapshot.frame.root_bounds,
-            viewport.observation.root_bounds,
-        )
-        self.assertEqual(
-            snapshot.frame.root_point_to_screen(Point(x=10, y=20)),
-            Point(x=270, y=340),
+            content.capture.root_bounds,
         )
 
-    def test_builder_rejects_raw_capture_bounds_for_cropped_viewport(self) -> None:
-        viewport = self._viewport()
+    def test_builder_rejects_raw_capture_bounds_for_cropped_content(self) -> None:
+        content = self._content()
 
         with self.assertRaises(ValueError):
             SemanticSnapshotBuilder(
                 SemanticPerceptionConfig()
             ).build(
-                viewport=viewport,
+                content=content,
                 quality=CaptureQuality(usable=True),
                 evidence_set=EvidenceSet(
-                    frame_id=viewport.frame.frame_id,
-                    source_id=viewport.frame.source_id,
-                    root_bounds=viewport.observation.root_bounds,
+                    frame_id=content.frame.frame_id,
+                    source_id=content.frame.source_id,
+                    root_bounds=content.capture.root_bounds,
                 ),
             )
 
     def test_builder_requires_one_context_input(self) -> None:
-        viewport = self._viewport()
+        content = self._content()
         evidence_set = EvidenceSet(
-            frame_id=viewport.frame.frame_id,
-            source_id=viewport.frame.source_id,
-            root_bounds=viewport.root_bounds,
+            frame_id=content.frame.frame_id,
+            source_id=content.frame.source_id,
+            root_bounds=content.bounds_content,
         )
         builder = SemanticSnapshotBuilder(SemanticPerceptionConfig())
 
         with self.assertRaises(ValueError):
             builder.build(
-                viewport=viewport,
-                frame=viewport.frame,
+                content=content,
+                frame=content.capture,
                 quality=CaptureQuality(usable=True),
                 evidence_set=evidence_set,
             )
