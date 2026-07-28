@@ -1,6 +1,11 @@
-from viewport.models import CanonicalViewport, ViewportPlacement
+from viewport.models import (
+    CanonicalViewport,
+    ContentPlacement,
+    ViewportPlacement,
+)
 
 __all__ = [
     "CanonicalViewport",
+    "ContentPlacement",
     "ViewportPlacement",
 ]

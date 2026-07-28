@@ -13,7 +13,7 @@ from observation import (
     FrameInfo,
     WindowContext,
 )
-from viewport import CanonicalViewport, ViewportPlacement
+from viewport import CanonicalViewport, ContentPlacement
 
 
 class CanonicalViewportTest(unittest.TestCase):
@@ -49,10 +49,10 @@ class CanonicalViewportTest(unittest.TestCase):
             capture_backend="test.capture",
         )
 
-    def test_crop_establishes_canonical_root_and_screen_mapping(self) -> None:
+    def test_crop_establishes_content_root_and_screen_mapping(self) -> None:
         viewport = CanonicalViewport(
             observation=self._observation(),
-            placement=ViewportPlacement(
+            placement=ContentPlacement(
                 source_bounds_capture=Rect(
                     x=160,
                     y=120,
@@ -82,92 +82,56 @@ class CanonicalViewportTest(unittest.TestCase):
             Rect(x=270, y=340, width=30, height=40),
         )
 
-    def test_normalized_root_can_differ_from_capture_crop_size(self) -> None:
-        viewport = CanonicalViewport(
-            observation=self._observation(),
-            placement=ViewportPlacement(
-                source_bounds_capture=Rect(
-                    x=160,
-                    y=120,
-                    width=1600,
-                    height=900,
-                ),
-                root_bounds=Rect(
-                    x=0,
-                    y=0,
-                    width=1920,
-                    height=1080,
-                ),
-            ),
-        )
-
-        self.assertEqual(
-            viewport.root_rect_to_capture(
-                Rect(x=960, y=540, width=480, height=270)
-            ),
-            Rect(x=960, y=570, width=400, height=225),
-        )
-        self.assertEqual(
-            viewport.root_rect_to_screen(
-                Rect(x=960, y=540, width=480, height=270)
-            ),
-            Rect(x=1060, y=770, width=400, height=225),
-        )
-        self.assertEqual(viewport.frame.root_to_screen.scale_x, 1600 / 1920)
-        self.assertEqual(viewport.frame.root_to_screen.scale_y, 900 / 1080)
-
-    def test_capture_mapping_round_trips_aligned_rectangles(self) -> None:
-        placement = ViewportPlacement(
+    def test_content_placement_preserves_capture_crop_dimensions(self) -> None:
+        placement = ContentPlacement(
             source_bounds_capture=Rect(
                 x=160,
                 y=120,
                 width=1600,
                 height=900,
-            ),
-            root_bounds=Rect(
-                x=0,
-                y=0,
-                width=1920,
-                height=1080,
-            ),
+            )
         )
-        root_rect = Rect(x=192, y=108, width=384, height=216)
-
-        capture_rect = placement.root_rect_to_capture(root_rect)
 
         self.assertEqual(
-            placement.capture_rect_to_root(capture_rect),
-            root_rect,
+            placement.root_bounds,
+            Rect(x=0, y=0, width=1600, height=900),
         )
+        root_rect = Rect(x=192, y=108, width=384, height=216)
+        capture_rect = placement.root_rect_to_capture(root_rect)
+        self.assertEqual(
+            capture_rect,
+            Rect(x=352, y=228, width=384, height=216),
+        )
+        self.assertEqual(placement.capture_rect_to_root(capture_rect), root_rect)
+
+    def test_content_placement_does_not_accept_normalized_root_bounds(self) -> None:
+        with self.assertRaises(TypeError):
+            ContentPlacement(  # type: ignore[call-arg]
+                source_bounds_capture=Rect(
+                    x=0,
+                    y=0,
+                    width=100,
+                    height=100,
+                ),
+                root_bounds=Rect(
+                    x=0,
+                    y=0,
+                    width=200,
+                    height=200,
+                ),
+            )
 
     def test_rejects_source_outside_observation(self) -> None:
         with self.assertRaises(ValueError):
             CanonicalViewport(
                 observation=self._observation(),
-                placement=ViewportPlacement(
+                placement=ContentPlacement(
                     source_bounds_capture=Rect(
                         x=1800,
                         y=1100,
                         width=200,
                         height=200,
                     ),
-                ),
-            )
-
-    def test_rejects_non_zero_canonical_origin(self) -> None:
-        with self.assertRaises(ValueError):
-            ViewportPlacement(
-                source_bounds_capture=Rect(
-                    x=0,
-                    y=0,
-                    width=100,
-                    height=100,
-                ),
-                root_bounds=Rect(
-                    x=1,
-                    y=0,
-                    width=100,
-                    height=100,
                 ),
             )
 

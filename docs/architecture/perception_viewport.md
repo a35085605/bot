@@ -3,11 +3,11 @@
 ## Purpose
 
 Observation records the pixels produced by a capture backend. Those pixels are
-not required to be a clean game image: a capture may include desktop content,
-window chrome, or letterbox bars.
+not required to be clean application content: a capture may include desktop
+content, window chrome, title bars, or letterbox bars.
 
 Perception must not consume `CapturedFrame` directly. Every observation passes
-through the viewport extraction boundary first:
+through the clean-content extraction boundary first:
 
 ```text
 CapturedFrame (raw capture-root)
@@ -15,12 +15,17 @@ CapturedFrame (raw capture-root)
     | extract_viewport(frame, extractor=...)
     v
 PerceptionViewport
-    ├── CanonicalViewport (shared viewport-root contract)
-    └── clean viewport pixels
+    ├── CanonicalViewport (shared content-root contract)
+    └── clean content pixels
     |
     v
 Perception / Evidence / World Model
 ```
+
+The clean content is derived from that specific raw capture. Its dimensions may
+change when the captured window changes size; extraction implementations must
+resolve the appropriate source rectangle from the current frame or current
+capture metadata.
 
 The shared coordinate contract lives in the top-level `viewport` package.
 Extraction implementations and image payloads remain in
@@ -37,28 +42,26 @@ result = extract_viewport(frame, extractor=viewport_extractor)
 
 A `ViewportExtractor` is callable and returns either:
 
-- `PerceptionViewport` when a complete, usable viewport is available; or
+- `PerceptionViewport` when complete, usable clean content is available; or
 - `ViewportUnavailable` when the raw frame must not enter perception.
 
-This makes viewport extraction mandatory in orchestration while allowing the
-implementation to vary by capture source.
+This makes clean-content extraction mandatory in orchestration while allowing
+the implementation to vary by capture source.
 
 ## Initial implementations
 
-The first version supports only identity and axis-aligned crop extraction:
+The first version supports identity and axis-aligned crop extraction:
 
-- `IdentityViewportExtractor`: the raw capture is already the clean viewport.
+- `IdentityViewportExtractor`: the raw capture is already clean content.
 - `ConfiguredCropViewportExtractor`: a configured capture-root rectangle is
-  cropped into a viewport. This covers known desktop/window crops and removal
-  of known letterbox bars.
+  cropped from the current frame. This covers fixed desktop/window crops and
+  removal of known letterbox bars.
 
-These extractors deliberately do not resize pixels. Reference-resolution
-registration and detector-input resizing remain later perception-preparation
-steps.
+A capture implementation with dynamic chrome or client-area geometry should
+provide an extractor that computes `source_bounds_capture` for each frame.
 
-`ViewportPlacement` nevertheless permits canonical root bounds and capture
-source bounds to have different sizes so future normalization can preserve the
-same downstream mapping contract.
+Extractors do not resize pixels. Content-root always starts at `(0, 0)` and has
+the exact width and height of the selected raw-capture rectangle.
 
 ## Coordinate mapping
 
@@ -66,10 +69,10 @@ The complete coordinate chain is:
 
 ```text
 detector-local
-    │ ImagePlacement
+    │ ImagePlacement (may scale during detector preparation)
     ▼
-viewport-root
-    │ ViewportPlacement
+content-root
+    │ ContentPlacement (translation only)
     ▼
 capture-root
     │ observation FrameInfo.root_to_screen
@@ -78,9 +81,8 @@ screen
 ```
 
 `CanonicalViewport.frame` composes the last two transforms and exposes a direct
-viewport-root-to-screen `FrameInfo`. Evidence and World Model bounds therefore
-remain in viewport-root, while execution can resolve them without reading raw
-pixels.
+content-root-to-screen `FrameInfo`. Evidence and World Model bounds remain in
+content-root, while execution can resolve them without reading raw pixels.
 
 ## Observation relationship
 
@@ -89,14 +91,15 @@ or arbitrary capture region and may extend outside a related window. Window
 metadata is contextual information, not a containment invariant.
 
 The raw observation `FrameInfo.root_to_screen` remains authoritative for
-capture-root. The derived canonical frame is authoritative for viewport-root.
+capture-root. The derived content frame is authoritative for content-root.
 
 ## Perception rule
 
 Perception services and detector orchestration should accept
 `PerceptionViewport`, not `CapturedFrame`.
 
-Detector-local coordinates are mapped into viewport-root by `ImagePlacement`.
-Semantic perception receives the associated `CanonicalViewport`, validates
-Evidence against its root bounds, and stores the derived canonical frame in the
-World Snapshot.
+Detector preparation may select an ROI, resize it, and map detector-local
+coordinates back into content-root through `ImagePlacement`. Semantic
+perception receives the associated `CanonicalViewport`, validates Evidence
+against its root bounds, and stores the derived content frame in the World
+Snapshot.
