@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from content import ContentFrame, ContentPlacementInCapture
 from evidence import Evidence, EvidenceSet
 from observation import CaptureQuality, FrameInfo
 from semantic_perception.rules import (
@@ -8,7 +9,6 @@ from semantic_perception.rules import (
     SceneRule,
     SemanticPerceptionConfig,
 )
-from viewport import CanonicalViewport, ViewportPlacement
 from world_model import (
     Confidence,
     ControlKey,
@@ -21,7 +21,7 @@ from world_model import (
 
 
 class SemanticSnapshotBuilder:
-    """Build one semantic world snapshot from canonical viewport evidence."""
+    """Build one semantic world snapshot from clean-content evidence."""
 
     def __init__(self, config: SemanticPerceptionConfig) -> None:
         if not isinstance(config, SemanticPerceptionConfig):
@@ -33,25 +33,30 @@ class SemanticSnapshotBuilder:
         *,
         quality: CaptureQuality,
         evidence_set: EvidenceSet,
-        viewport: CanonicalViewport | None = None,
+        content: ContentFrame | None = None,
+        viewport: ContentFrame | None = None,
         frame: FrameInfo | None = None,
     ) -> WorldSnapshot:
-        """
-        Build from a canonical viewport.
+        """Build from exactly one content context.
 
-        ``frame`` remains as a compatibility path for callers whose capture is
-        already the canonical viewport. New orchestration should pass
-        ``viewport`` explicitly so cropped or normalized coordinate spaces
-        cannot be confused with raw capture-root.
+        New orchestration should pass ``content``. ``viewport`` is a temporary
+        compatibility name for callers using ``CanonicalViewport``. ``frame``
+        remains available only when the raw capture is already clean content.
         """
 
-        if (viewport is None) == (frame is None):
-            raise ValueError("provide exactly one of viewport or frame")
-        if viewport is not None and not isinstance(
-            viewport,
-            CanonicalViewport,
-        ):
-            raise TypeError("viewport must be CanonicalViewport or None")
+        supplied = sum(
+            value is not None
+            for value in (content, viewport, frame)
+        )
+        if supplied != 1:
+            raise ValueError(
+                "provide exactly one of content, viewport, or frame"
+            )
+
+        if content is not None and not isinstance(content, ContentFrame):
+            raise TypeError("content must be ContentFrame or None")
+        if viewport is not None and not isinstance(viewport, ContentFrame):
+            raise TypeError("viewport must be ContentFrame or None")
         if frame is not None and not isinstance(frame, FrameInfo):
             raise TypeError("frame must be FrameInfo or None")
         if not isinstance(quality, CaptureQuality):
@@ -59,16 +64,18 @@ class SemanticSnapshotBuilder:
         if not isinstance(evidence_set, EvidenceSet):
             raise TypeError("evidence_set must be EvidenceSet")
 
-        if viewport is None:
+        if content is None:
+            content = viewport
+        if content is None:
             assert frame is not None
-            viewport = CanonicalViewport(
-                observation=frame,
-                placement=ViewportPlacement(
-                    source_bounds_capture=frame.root_bounds,
+            content = ContentFrame(
+                capture=frame,
+                placement=ContentPlacementInCapture(
+                    bounds_capture=frame.root_bounds,
                 ),
             )
 
-        self._validate_context(viewport, evidence_set)
+        self._validate_context(content, evidence_set)
 
         if quality.usable:
             scene = self._build_scene(evidence_set)
@@ -78,7 +85,7 @@ class SemanticSnapshotBuilder:
             controls = self._unknown_controls()
 
         return WorldSnapshot(
-            frame=viewport.frame,
+            frame=content.frame,
             quality=quality,
             scene=scene,
             controls=controls,
@@ -86,21 +93,21 @@ class SemanticSnapshotBuilder:
 
     @staticmethod
     def _validate_context(
-        viewport: CanonicalViewport,
+        content: ContentFrame,
         evidence_set: EvidenceSet,
     ) -> None:
-        frame = viewport.frame
+        frame = content.frame
         if evidence_set.frame_id != frame.frame_id:
             raise ValueError(
-                "evidence set frame_id must match viewport frame_id"
+                "evidence set frame_id must match content frame_id"
             )
         if evidence_set.source_id != frame.source_id:
             raise ValueError(
-                "evidence set source_id must match viewport source_id"
+                "evidence set source_id must match content source_id"
             )
-        if evidence_set.root_bounds != viewport.root_bounds:
+        if evidence_set.root_bounds != content.bounds_content:
             raise ValueError(
-                "evidence set root_bounds must match canonical viewport bounds"
+                "evidence set root_bounds must match content bounds"
             )
 
     def _build_scene(self, evidence_set: EvidenceSet) -> SceneObservation:
