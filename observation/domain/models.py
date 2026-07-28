@@ -342,7 +342,7 @@ class FrameInfo:
     captured_at: datetime
     root_bounds: Rect
     source_id: str
-    window: WindowContext
+    window: WindowContext | None
     root_to_screen: CoordinateTransform
     capture_backend: str
 
@@ -357,8 +357,11 @@ class FrameInfo:
             raise ValueError("captured_at must be timezone-aware")
         if not isinstance(self.root_bounds, Rect):
             raise TypeError("root_bounds must be Rect")
-        if not isinstance(self.window, WindowContext):
-            raise TypeError("window must be WindowContext")
+        if self.window is not None and not isinstance(
+            self.window,
+            WindowContext,
+        ):
+            raise TypeError("window must be WindowContext or None")
         if not isinstance(self.root_to_screen, CoordinateTransform):
             raise TypeError(
                 "root_to_screen must be CoordinateTransform"
@@ -369,15 +372,6 @@ class FrameInfo:
         ):
             raise ValueError(
                 "root_to_screen must transform ROOT to SCREEN"
-            )
-
-        capture_bounds_screen = self.root_to_screen.rect(self.root_bounds)
-        if not self.window.client_bounds_screen.contains_rect(
-            capture_bounds_screen
-        ):
-            raise ValueError(
-                "transformed root bounds must be contained by "
-                "window client bounds"
             )
 
         object.__setattr__(
