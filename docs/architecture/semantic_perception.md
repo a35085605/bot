@@ -6,26 +6,25 @@ The `semantic_perception` package converts detector-independent `EvidenceSet`
 values into the semantic observations consumed by `world_model`.
 
 ```text
-EvidenceSet for one frame
-          │
-          ▼
+CanonicalViewport + EvidenceSet
+              │
+              ▼
 Declarative evidence requirements
-          │
-          ├────────► scene hypotheses
-          │
-          └────────► control observations
-                                │
-                                ▼
-                         WorldSnapshot
-                                │
-                                ▼
-                       WorldStateTracker
+              │
+              ├────────► scene hypotheses
+              │
+              └────────► control observations
+                                    │
+                                    ▼
+                             WorldSnapshot
+                                    │
+                                    ▼
+                           WorldStateTracker
 ```
 
 The package does not run detectors, interpret detector-specific result objects,
 track state across frames, make decisions, or execute input. Rules match stable
-Evidence metadata: kind, normalized score, detector identity, and asset
-keys.
+Evidence metadata: kind, normalized score, detector identity, and asset keys.
 
 ## Scene rules
 
@@ -41,16 +40,26 @@ the snapshot keeps the hypotheses but leaves the scene unresolved.
 ## Control rules
 
 A `ControlRule` selects the strongest matching localized evidence item and maps
-its root-coordinate bounds to a `ControlObservation`. Missing or non-localized
+its viewport-root bounds to a `ControlObservation`. Missing or non-localized
 evidence produces `Presence.UNKNOWN`; absence of evidence is not treated as
-proof that a control is absent. Unusable frames suppress scene resolution
-and return configured controls as unknown.
+proof that a control is absent. Unusable frames suppress scene resolution and
+return configured controls as unknown.
 
 ## Context validation
 
-`SemanticSnapshotBuilder` requires the `EvidenceSet` and `FrameInfo` to agree
-on frame ID, source ID, and root bounds. This prevents evidence from another
-frame or coordinate space from entering a snapshot.
+`SemanticSnapshotBuilder` requires the `EvidenceSet` and
+`CanonicalViewport` to agree on:
+
+- frame ID
+- source ID
+- canonical viewport root bounds
+
+The builder stores `CanonicalViewport.frame` in the resulting `WorldSnapshot`.
+This derived `FrameInfo` uses viewport-root and a direct viewport-root-to-screen
+transform, so the world model never needs the raw capture coordinate space.
+
+The temporary `frame=` compatibility path is valid only when the supplied frame
+is already the canonical viewport.
 
 ## Example
 
@@ -95,7 +104,7 @@ builder = SemanticSnapshotBuilder(
 )
 
 snapshot = builder.build(
-    frame=frame.info,
+    viewport=perception_viewport.viewport,
     quality=frame.quality,
     evidence_set=evidence_set,
 )
