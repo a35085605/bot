@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TypeVar
 
-from detector_input import DetectorInputContext
+from detector_input import DetectorInputContext, ImagePlacement
 from evidence.domain.models import (
     Evidence,
     EvidenceId,
