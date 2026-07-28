@@ -16,6 +16,7 @@ from observation import (
     FramePixels,
     PixelFormat,
 )
+from viewport import CanonicalViewport, ViewportPlacement
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
@@ -78,72 +79,30 @@ class ViewportProvenance:
 
 
 @dataclass(frozen=True, slots=True)
-class ViewportPlacement:
-    """Translation from clean viewport-root into raw capture-root."""
-
-    source_bounds_capture: Rect
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.source_bounds_capture, Rect):
-            raise TypeError("source_bounds_capture must be Rect")
-
-    @property
-    def root_bounds(self) -> Rect:
-        return Rect(
-            x=0,
-            y=0,
-            width=self.source_bounds_capture.width,
-            height=self.source_bounds_capture.height,
-        )
-
-    def root_point_to_capture(self, point: Point) -> Point:
-        if not isinstance(point, Point):
-            raise TypeError("viewport-root point must be Point")
-        if not self.root_bounds.contains_point(point.x, point.y):
-            raise ValueError("point must be inside viewport root bounds")
-        return Point(
-            x=self.source_bounds_capture.left + point.x,
-            y=self.source_bounds_capture.top + point.y,
-        )
-
-    def root_rect_to_capture(self, rect: Rect) -> Rect:
-        if not isinstance(rect, Rect):
-            raise TypeError("viewport-root rect must be Rect")
-        if not self.root_bounds.contains_rect(rect):
-            raise ValueError("rect must be inside viewport root bounds")
-        return rect.translated(
-            dx=self.source_bounds_capture.left,
-            dy=self.source_bounds_capture.top,
-        )
-
-
-@dataclass(frozen=True, slots=True)
 class PerceptionViewport:
     """
-    Clean game image consumed by perception.
+    Pixels for one canonical viewport consumed by perception.
 
-    All detector, evidence, and world-model root coordinates begin in this
-    viewport-root space rather than in the raw capture-root space.
+    ``viewport`` owns the shared viewport-root coordinate contract. The image
+    payload remains perception-specific, while observation, the world model,
+    and execution can exchange the canonical viewport independently of pixels.
     """
 
-    source_info: FrameInfo
+    viewport: CanonicalViewport
     pixels: FramePixels = field(
         compare=False,
         hash=False,
         repr=False,
     )
     pixel_format: PixelFormat
-    placement: ViewportPlacement
     provenance: ViewportProvenance
     confidence: float = 1.0
 
     def __post_init__(self) -> None:
-        if not isinstance(self.source_info, FrameInfo):
-            raise TypeError("viewport source_info must be FrameInfo")
+        if not isinstance(self.viewport, CanonicalViewport):
+            raise TypeError("viewport must be CanonicalViewport")
         if not isinstance(self.pixel_format, PixelFormat):
             raise TypeError("viewport pixel_format must be PixelFormat")
-        if not isinstance(self.placement, ViewportPlacement):
-            raise TypeError("viewport placement must be ViewportPlacement")
         if not isinstance(self.provenance, ViewportProvenance):
             raise TypeError("viewport provenance must be ViewportProvenance")
         if not isinstance(self.pixels, np.ndarray):
@@ -154,7 +113,7 @@ class PerceptionViewport:
                 f"got {self.pixels.dtype}"
             )
 
-        root_bounds = self.placement.root_bounds
+        root_bounds = self.viewport.root_bounds
         channels = self.pixel_format.channel_count
         if channels == 1:
             expected_shape = (root_bounds.height, root_bounds.width)
@@ -166,8 +125,9 @@ class PerceptionViewport:
             )
         if self.pixels.shape != expected_shape:
             raise ValueError(
-                "viewport pixel shape must match placement and pixel format: "
-                f"expected {expected_shape}, got {self.pixels.shape}"
+                "viewport pixel shape must match canonical root bounds and "
+                f"pixel format: expected {expected_shape}, "
+                f"got {self.pixels.shape}"
             )
 
         frozen = np.frombuffer(
@@ -182,32 +142,42 @@ class PerceptionViewport:
         )
 
     @property
+    def frame(self) -> FrameInfo:
+        """Canonical viewport-root frame consumed by downstream layers."""
+        return self.viewport.frame
+
+    @property
+    def source_info(self) -> FrameInfo:
+        """Raw observation frame retained for provenance and capture mapping."""
+        return self.viewport.observation
+
+    @property
+    def placement(self) -> ViewportPlacement:
+        return self.viewport.placement
+
+    @property
     def frame_id(self) -> FrameId:
-        return self.source_info.frame_id
+        return self.frame.frame_id
 
     @property
     def source_id(self) -> str:
-        return self.source_info.source_id
+        return self.frame.source_id
 
     @property
     def root_bounds(self) -> Rect:
-        return self.placement.root_bounds
+        return self.viewport.root_bounds
 
     def root_point_to_capture(self, point: Point) -> Point:
-        return self.placement.root_point_to_capture(point)
+        return self.viewport.root_point_to_capture(point)
 
     def root_rect_to_capture(self, rect: Rect) -> Rect:
-        return self.placement.root_rect_to_capture(rect)
+        return self.viewport.root_rect_to_capture(rect)
 
     def root_point_to_screen(self, point: Point) -> Point:
-        return self.source_info.root_point_to_screen(
-            self.root_point_to_capture(point)
-        )
+        return self.viewport.root_point_to_screen(point)
 
     def root_rect_to_screen(self, rect: Rect) -> Rect:
-        return self.source_info.root_rect_to_screen(
-            self.root_rect_to_capture(rect)
-        )
+        return self.viewport.root_rect_to_screen(rect)
 
 
 @dataclass(frozen=True, slots=True)
@@ -251,7 +221,7 @@ def extract_viewport(
     *,
     extractor: ViewportExtractor,
 ) -> ViewportExtractionResult:
-    """Run the mandatory raw-capture to clean-viewport boundary."""
+    """Run the mandatory raw-capture to canonical-viewport boundary."""
 
     if not isinstance(frame, CapturedFrame):
         raise TypeError("frame must be CapturedFrame")
@@ -360,11 +330,13 @@ def _crop_viewport(
         pixels = frame.pixels[top:bottom, left:right, :]
 
     return PerceptionViewport(
-        source_info=frame.info,
+        viewport=CanonicalViewport(
+            observation=frame.info,
+            placement=ViewportPlacement(
+                source_bounds_capture=source_bounds_capture,
+            ),
+        ),
         pixels=pixels,
         pixel_format=frame.pixel_format,
-        placement=ViewportPlacement(
-            source_bounds_capture=source_bounds_capture,
-        ),
         provenance=provenance,
     )
