@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from target_runtime.domain.models import TargetId, TargetRuntimeSnapshot
+from target_runtime.domain.identities import TargetId
+from target_runtime.domain.snapshots import TargetRuntimeSnapshot
 
 
 class TargetRuntimeInspector(Protocol):
