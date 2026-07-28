@@ -50,8 +50,7 @@ and return configured controls as unknown.
 
 `SemanticSnapshotBuilder` requires the `EvidenceSet` and `FrameInfo` to agree
 on frame ID, source ID, and root bounds. This prevents evidence from another
-frame
-or coordinate space from entering a snapshot.
+frame or coordinate space from entering a snapshot.
 
 ## Example
 
