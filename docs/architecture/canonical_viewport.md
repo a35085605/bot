@@ -2,39 +2,42 @@
 
 ## Purpose
 
-The automation pipeline needs one clean coordinate space that is shared across
-capture integration, perception, the world model, and execution planning.
-
-That coordinate space is the **canonical viewport**:
+The automation pipeline needs a clean image region derived from each raw
+capture before perception starts. That region is the **canonical viewport**:
 
 ```text
 CapturedFrame (raw capture-root)
         │
-        │ viewport extraction / registration
+        │ clean-content extraction
         ▼
-CanonicalViewport (viewport-root)
+CanonicalViewport (content-root)
         ├────────► PerceptionViewport pixels
         ├────────► Evidence and WorldSnapshot bounds
         └────────► Execution coordinate mapping
 ```
+
+The viewport is tied to one observation. It represents a real sub-rectangle of
+that raw capture, such as a client area after title bar, window chrome, desktop
+content, or letterbox bars have been removed.
 
 `CanonicalViewport` lives in the top-level `viewport` package because it is not
 owned by Observation, Perception, or Control:
 
 - Observation supplies the raw capture frame and its capture-root-to-screen
   transform.
-- Perception supplies or consumes pixels expressed in viewport-root.
-- The World Model stores semantic bounds expressed in viewport-root.
-- Execution resolves those semantic bounds through the same viewport mapping
+- Capture-specific extraction identifies the clean content rectangle.
+- Perception consumes pixels expressed in content-root.
+- The World Model stores semantic bounds expressed in content-root.
+- Execution resolves those semantic bounds through the same content mapping
   before invoking a native control channel.
 
 The viewport package contains no pixels, detector types, semantic identities,
 or control operations.
 
-## Canonical frame
+## Content frame
 
 `CanonicalViewport.frame` is a derived `FrameInfo` whose `root_bounds` describe
-viewport-root rather than raw capture-root.
+the extracted content rather than the complete raw capture.
 
 The derived frame preserves observation identity and timing:
 
@@ -48,8 +51,8 @@ The derived frame preserves observation identity and timing:
 Its `root_to_screen` transform is composed from:
 
 ```text
-viewport-root
-    │ ViewportPlacement
+content-root
+    │ ContentPlacement (crop translation only)
     ▼
 capture-root
     │ observation FrameInfo.root_to_screen
@@ -57,56 +60,77 @@ capture-root
 screen
 ```
 
-Semantic perception passes this canonical frame into `WorldSnapshot`. The world
-model therefore remains based on `FrameInfo`, but the frame is explicitly the
-canonical viewport frame rather than the raw capture frame.
+Semantic perception passes this content frame into `WorldSnapshot`. The world
+model remains based on `FrameInfo`, but the frame explicitly describes the
+clean content rather than raw capture-root.
 
 ## Placement contract
 
-`ViewportPlacement` records:
+`ContentPlacement` has one field:
 
-- `root_bounds`: canonical viewport-root bounds, always beginning at `(0, 0)`
-- `source_bounds_capture`: the raw capture-root region represented by the
-  canonical viewport
+```python
+ContentPlacement(
+    source_bounds_capture: Rect,
+)
+```
 
-The rectangles may have different sizes. This allows a future extractor or
-registration stage to normalize a capture crop to a reference resolution
-without changing downstream coordinate contracts.
+`source_bounds_capture` is the raw capture-root region represented by the clean
+content. Content-root is derived automatically:
 
-Rectangle mapping uses floor for leading edges and ceil for trailing edges so
-the mapped half-open rectangle contains the complete source area.
+```text
+Rect(
+    x=0,
+    y=0,
+    width=source_bounds_capture.width,
+    height=source_bounds_capture.height,
+)
+```
+
+This boundary preserves the captured pixel dimensions. Mapping between
+content-root and capture-root is translation-only; it never resizes or
+normalizes the image.
+
+A temporary `ViewportPlacement` alias remains for downstream compatibility, but
+it has the same crop-only constructor and no independent `root_bounds`.
 
 ## Pixels remain outside the shared domain
 
 `PerceptionViewport` remains in `perception_integration` and combines:
 
 - `CanonicalViewport`
-- immutable pixels
+- immutable clean-content pixels
 - pixel format
 - extraction provenance
 - extraction confidence
 
-This keeps image payloads and extraction policy out of the shared viewport
-domain while allowing all downstream layers to use the same coordinate
-contract.
+The pixel dimensions must exactly match the derived content-root bounds. This
+keeps image payloads and extraction policy out of the shared viewport domain
+while allowing all downstream layers to use the same coordinate contract.
+
+## Detector preparation owns normalization
+
+ROI selection, resize, padding, reference-resolution registration, and other
+normalization happen after clean content has been established. Those operations
+belong to `detector_input` and `imaging`, where their detector-local placement
+and resize provenance can be recorded explicitly.
 
 ## Compatibility path
 
 `SemanticSnapshotBuilder.build(frame=...)` remains temporarily available for a
-capture that is already the canonical viewport. It creates an identity
+capture that is already clean content. It creates an identity
 `CanonicalViewport`.
 
-New orchestration should pass `viewport=...` explicitly. Cropped or normalized
-captures must not use the compatibility path because raw capture-root and
-viewport-root are different coordinate spaces.
+New orchestration should pass `viewport=...` explicitly. Cropped captures must
+not use the compatibility path because raw capture-root and content-root are
+different coordinate spaces.
 
 ## Non-goals
 
 This boundary does not decide:
 
-- which viewport extractor to use
-- how to discover black bars or window chrome
-- how to normalize a viewport to a template reference resolution
+- which content extractor to use
+- how to discover title bars, black bars, or window chrome
+- how to resize or normalize content for a detector
 - which detector or ROI to run
 - which control channel to select
 - whether an application-level effect succeeded
