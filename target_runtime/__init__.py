@@ -1,4 +1,4 @@
-from target_runtime.domain.models import (
+from target_runtime.domain import (
     AdbChannelState,
     AdbDeviceStatus,
     ControlCapability,
