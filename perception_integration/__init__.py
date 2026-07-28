@@ -12,11 +12,12 @@ from perception_integration.viewport import (
     ViewportUnavailable,
     extract_viewport,
 )
-from viewport import CanonicalViewport, ViewportPlacement
+from viewport import CanonicalViewport, ContentPlacement, ViewportPlacement
 
 __all__ = [
     "CanonicalViewport",
     "ConfiguredCropViewportExtractor",
+    "ContentPlacement",
     "DetectorInputContext",
     "EvidenceAssembler",
     "IdentityViewportExtractor",
