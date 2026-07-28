@@ -2,15 +2,15 @@
 
 ## Purpose
 
-The `perception_integration` package contextualizes detector-local output as
-frame-root `Evidence` while keeping Observation, Vision primitives, and Evidence
-independently usable.
+`detector_input` prepares one detector invocation and records its spatial
+context. `perception_integration` then converts detector-local output into
+canonical viewport-root `Evidence`.
 
 ```text
-Observation frame + input preparation
+Canonical viewport image + resolved ROI
                   │
                   ▼
-            ImagePlacement
+          detector_input preparation
                   │
                   ├──────────────► Vision receives pixels only
                   │                         │
@@ -20,24 +20,36 @@ Observation frame + input preparation
                   └──────────────► EvidenceAssembler
                                             │
                                             ▼
-                                  Evidence in root space
+                              Evidence in viewport-root
 ```
 
-The bridge is a pure conversion boundary. It does not capture frames, run or
-select detectors, assign semantic meaning, schedule work, retry, or verify
-effects.
+The bridge is a pure conversion boundary. It does not capture frames, crop or
+resize images, run or select detectors, assign semantic meaning, schedule work,
+retry, or verify effects.
 
-## Package boundary
+## Package boundaries
 
-The bridge lives outside Observation, Vision, and Evidence because it is the
-only component allowed to depend on the contracts of multiple layers.
+General image processing and detector input contracts no longer belong to
+`perception_integration`:
 
 ```text
-observation ───────────────┐
-vision ────────────────────┼──► perception_integration
-geometry ──────────────────┤
-evidence ──────────────────┘
+geometry ───────────────► imaging
+                              │
+observation ───────┐           ▼
+geometry ──────────┼──► detector_input
+imaging ───────────┘           │
+                              ▼
+evidence ─────────────► perception_integration
 ```
+
+- `imaging` owns immutable rasters, crop, resize capability, and concrete image
+  adapters.
+- `detector_input` owns prepared images, placements, and invocation identity.
+- `perception_integration` owns only detector-result-to-Evidence conversion.
+
+The previous `perception_integration.DetectorInputContext` and
+`perception_integration.ImagePlacement` imports remain compatibility exports;
+new code should import them from `detector_input`.
 
 Production Vision code must not import Observation, Evidence, window metadata,
 or screen-coordinate types. Evidence does not own detector-input preparation or
@@ -46,12 +58,12 @@ Vision-specific result types.
 ## Spatial contract
 
 `ImagePlacement` declares the correspondence between one detector image and one
-frame-root ROI:
+canonical viewport-root ROI:
 
 - `input_bounds_local` are the bounds of the complete image passed to the
   detector, with origin `(0, 0)`.
-- `content_bounds_local` are the detector-image pixels derived from the frame.
-- `source_bounds_root` are the frame-root pixels represented by
+- `content_bounds_local` are the detector-image pixels derived from the source.
+- `source_bounds_root` are the viewport-root pixels represented by
   `content_bounds_local`.
 
 The area in `input_bounds_local` outside `content_bounds_local` is synthetic
@@ -63,10 +75,10 @@ The source ROI and detector content may have different sizes. Mapping uses
 floor for leading edges and ceil for trailing edges, ensuring the returned
 half-open root rectangle contains the complete detector result.
 
-`DetectorInputContext` adds observation identity and complete frame bounds:
+`DetectorInputContext` adds observation identity and complete viewport bounds:
 
 - `frame_id` and `source_id` identify the observation.
-- `root_bounds` are the complete frame-root bounds.
+- `root_bounds` are the complete canonical viewport-root bounds.
 - `placement.source_bounds_root` must be inside `root_bounds`.
 
 It deliberately contains no pixels, window metadata, screen coordinates,
@@ -75,53 +87,48 @@ capture backend, detector implementation, or scheduling policy.
 ## Example
 
 ```python
-from perception_integration import (
-    DetectorInputContext,
-    EvidenceAssembler,
-    ImagePlacement,
+from detector_input import FixedViewportRoiPreparer
+from geometry.rect import Rect
+from geometry.size import Size
+from imaging import Interpolation, RasterImage
+from imaging.adapters import OpenCVImageResizer
+from perception_integration import EvidenceAssembler
+
+prepared = FixedViewportRoiPreparer(
+    resizer=OpenCVImageResizer(),
+).prepare(
+    frame_id=perception_viewport.frame_id,
+    source_id=perception_viewport.source_id,
+    root_bounds=perception_viewport.root_bounds,
+    image=RasterImage(pixels=perception_viewport.pixels),
+    roi_root=Rect(x=1200, y=675, width=267, height=150),
+    output_size=Size(width=320, height=180),
+    interpolation=Interpolation.LINEAR,
 )
 
 result = matching_service.match(
-    image=prepared_image,
+    image=prepared.pixels,
     template_key="ui.submit",
     candidate_floor=0.7,
 )
 
-input_bounds = Rect(
-    x=0,
-    y=0,
-    width=prepared_image.shape[1],
-    height=prepared_image.shape[0],
-)
-
-context = DetectorInputContext(
-    frame_id=frame.info.frame_id,
-    source_id=frame.info.source_id,
-    root_bounds=frame.info.root_bounds,
-    placement=ImagePlacement(
-        input_bounds_local=input_bounds,
-        content_bounds_local=detector_content_bounds,
-        source_bounds_root=searched_roi_root,
-    ),
-)
-
 evidence = EvidenceAssembler.assemble(
-    context=context,
+    context=prepared.context,
     evidence_id=EvidenceId("template-1"),
     kind=EvidenceKind("template.match"),
-    score=candidate.score,
-    bounds_local=candidate.rect,
+    score=result.score,
+    bounds_local=result.rect,
     provenance=provenance,
-    result=candidate,
+    result=result,
 )
 ```
 
 For a direct crop or a resize without padding, `content_bounds_local` equals
-`input_bounds_local`. For detector-side letterboxing, it describes only the
+`input_bounds_local`. Future detector-side letterboxing may describe only the
 unpadded content rectangle.
 
 ## Screen coordinates
 
-Screen conversion remains an Observation or Execution concern. Evidence stores
-root coordinates only; it does not carry window placement, client offsets, DPI
-scaling, or screen geometry.
+Screen conversion remains a canonical Viewport or Execution concern. Evidence
+stores viewport-root coordinates only; it does not carry window placement,
+client offsets, DPI scaling, or screen geometry.

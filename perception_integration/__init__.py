@@ -1,8 +1,5 @@
-from perception_integration.bridge import (
-    DetectorInputContext,
-    EvidenceAssembler,
-    ImagePlacement,
-)
+from detector_input import DetectorInputContext, ImagePlacement
+from perception_integration.bridge import EvidenceAssembler
 from perception_integration.viewport import (
     ConfiguredCropViewportExtractor,
     IdentityViewportExtractor,
