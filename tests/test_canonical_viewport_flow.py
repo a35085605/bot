@@ -18,7 +18,7 @@ from semantic_perception import (
     SemanticPerceptionConfig,
     SemanticSnapshotBuilder,
 )
-from viewport import CanonicalViewport, ViewportPlacement
+from viewport import CanonicalViewport, ContentPlacement
 
 
 class CanonicalViewportFlowTest(unittest.TestCase):
@@ -49,7 +49,7 @@ class CanonicalViewportFlowTest(unittest.TestCase):
     def _viewport(self) -> CanonicalViewport:
         return CanonicalViewport(
             observation=self._observation(),
-            placement=ViewportPlacement(
+            placement=ContentPlacement(
                 source_bounds_capture=Rect(
                     x=160,
                     y=120,
@@ -59,7 +59,7 @@ class CanonicalViewportFlowTest(unittest.TestCase):
             ),
         )
 
-    def test_world_snapshot_uses_canonical_viewport_frame(self) -> None:
+    def test_world_snapshot_uses_content_viewport_frame(self) -> None:
         viewport = self._viewport()
         evidence_set = EvidenceSet(
             frame_id=viewport.frame.frame_id,
