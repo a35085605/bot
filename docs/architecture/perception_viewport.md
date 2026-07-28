@@ -14,14 +14,20 @@ CapturedFrame (raw capture-root)
     |
     | extract_viewport(frame, extractor=...)
     v
-PerceptionViewport (clean viewport-root)
+PerceptionViewport
+    ├── CanonicalViewport (shared viewport-root contract)
+    └── clean viewport pixels
     |
     v
 Perception / Evidence / World Model
 ```
 
-`PerceptionViewport.root_bounds` always starts at `(0, 0)`. Root coordinates
-produced after this boundary are viewport-root coordinates.
+The shared coordinate contract lives in the top-level `viewport` package.
+Extraction implementations and image payloads remain in
+`perception_integration`.
+
+See [Canonical viewport boundary](canonical_viewport.md) for ownership and
+cross-layer coordinate rules.
 
 ## Function contract
 
@@ -46,31 +52,35 @@ The first version supports only identity and axis-aligned crop extraction:
   cropped into a viewport. This covers known desktop/window crops and removal
   of known letterbox bars.
 
-This boundary deliberately does not resize pixels. Reference-resolution
+These extractors deliberately do not resize pixels. Reference-resolution
 registration and detector-input resizing remain later perception-preparation
 steps.
 
+`ViewportPlacement` nevertheless permits canonical root bounds and capture
+source bounds to have different sizes so future normalization can preserve the
+same downstream mapping contract.
+
 ## Coordinate mapping
 
-`ViewportPlacement` records the raw capture-root rectangle represented by the
-complete viewport image:
+The complete coordinate chain is:
 
 ```text
-viewport-root --translation--> capture-root --FrameInfo.root_to_screen--> screen
+detector-local
+    │ ImagePlacement
+    ▼
+viewport-root
+    │ ViewportPlacement
+    ▼
+capture-root
+    │ observation FrameInfo.root_to_screen
+    ▼
+screen
 ```
 
-A viewport can therefore map points and rectangles back to the raw capture and
-to screen coordinates without exposing raw pixels to perception.
-
-For the crop implementation:
-
-```text
-capture_x = viewport_x + source_bounds_capture.left
-capture_y = viewport_y + source_bounds_capture.top
-```
-
-Because v1 extraction does not resize, the viewport dimensions equal the
-source crop dimensions.
+`CanonicalViewport.frame` composes the last two transforms and exposes a direct
+viewport-root-to-screen `FrameInfo`. Evidence and World Model bounds therefore
+remain in viewport-root, while execution can resolve them without reading raw
+pixels.
 
 ## Observation relationship
 
@@ -78,8 +88,8 @@ source crop dimensions.
 or arbitrary capture region and may extend outside a related window. Window
 metadata is contextual information, not a containment invariant.
 
-`FrameInfo.root_to_screen` remains the authoritative raw capture-root to screen
-mapping.
+The raw observation `FrameInfo.root_to_screen` remains authoritative for
+capture-root. The derived canonical frame is authoritative for viewport-root.
 
 ## Perception rule
 
@@ -87,5 +97,6 @@ Perception services and detector orchestration should accept
 `PerceptionViewport`, not `CapturedFrame`.
 
 Detector-local coordinates are mapped into viewport-root by `ImagePlacement`.
-Execution later maps viewport-root through capture-root into the native screen
-or device coordinate space.
+Semantic perception receives the associated `CanonicalViewport`, validates
+Evidence against its root bounds, and stores the derived canonical frame in the
+World Snapshot.
