@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Protocol, TypeAlias
 
 from content import (
@@ -15,14 +16,37 @@ from content import (
 )
 from geometry.point import Point
 from geometry.rect import Rect
-from observation import CapturedFrame, FrameInfo
+from observation import CapturedFrame, FrameId, FrameInfo
 from viewport import CanonicalViewport, ContentPlacement
 
 
 ViewportExtractionMethod = ContentExtractionMethod
-ViewportFailureReason = ContentFailureReason
 ViewportProvenance = ContentExtractionProvenance
-ViewportUnavailable = ContentUnavailable
+
+
+class ViewportFailureReason(str, Enum):
+    FRAME_UNUSABLE = "frame_unusable"
+    SOURCE_BOUNDS_OUTSIDE_FRAME = "source_bounds_outside_frame"
+
+
+@dataclass(frozen=True, slots=True)
+class ViewportUnavailable:
+    frame_id: FrameId
+    reason: ViewportFailureReason
+    detail: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.frame_id, FrameId):
+            raise TypeError("frame_id must be FrameId")
+        if not isinstance(self.reason, ViewportFailureReason):
+            raise TypeError("reason must be ViewportFailureReason")
+        if self.detail is not None:
+            if not isinstance(self.detail, str):
+                raise TypeError("detail must be str or None")
+            normalized = self.detail.strip()
+            if not normalized:
+                raise ValueError("detail cannot be empty")
+            object.__setattr__(self, "detail", normalized)
 
 
 class PerceptionViewport(CapturedContent):
@@ -77,7 +101,18 @@ def _legacy_result(result: ContentExtractionResult) -> ViewportExtractionResult:
             provenance=result.provenance,
             confidence=result.confidence,
         )
-    return result
+
+    assert isinstance(result, ContentUnavailable)
+    reason = (
+        ViewportFailureReason.FRAME_UNUSABLE
+        if result.reason is ContentFailureReason.FRAME_UNUSABLE
+        else ViewportFailureReason.SOURCE_BOUNDS_OUTSIDE_FRAME
+    )
+    return ViewportUnavailable(
+        frame_id=result.frame_id,
+        reason=reason,
+        detail=result.detail,
+    )
 
 
 def extract_viewport(
