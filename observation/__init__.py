@@ -1,27 +1,33 @@
-from observation.domain.models import (
+from capture import (
     CapturedFrame,
     CaptureQuality,
     CaptureStreamId,
+    CaptureSurface,
     CoordinateSpace,
     CoordinateTransform,
     FrameId,
     FrameInfo,
     FramePixels,
+    FrameSource,
     PixelFormat,
-    WindowContext,
 )
-from observation.ports import FrameSource
+from observation.domain.models import (
+    ObservationBundle,
+    ObservationCoherence,
+)
 
 __all__ = [
     "CapturedFrame",
     "CaptureQuality",
     "CaptureStreamId",
+    "CaptureSurface",
     "CoordinateSpace",
     "CoordinateTransform",
     "FrameId",
     "FrameInfo",
     "FramePixels",
     "FrameSource",
+    "ObservationBundle",
+    "ObservationCoherence",
     "PixelFormat",
-    "WindowContext",
 ]
