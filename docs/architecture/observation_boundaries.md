@@ -31,8 +31,23 @@ The `capture` package answers:
 > What pixels were acquired, how should their coordinates be interpreted, and
 > are those pixels usable?
 
-`CapturedFrame` owns immutable pixels, a `FrameInfo` coordinate contract,
-pixel format, and `CaptureQuality`.
+Capture backends return `AcquiredFrame`, which may still reference a logical
+read-only raster slice. `MaterializingFrameSource` crosses the public capture
+boundary by calling `materialize_image()` and constructing `CapturedFrame`.
+`CapturedFrame` validates that its raster owns independent contiguous storage,
+then exposes immutable pixels, a `FrameInfo` coordinate contract, pixel format,
+and `CaptureQuality`.
+
+```text
+FrameCaptureBackend -> AcquiredFrame
+                           │
+                           │ materialize_image()
+                           ▼
+                 MaterializingFrameSource
+                           │
+                           ▼
+                    CapturedFrame
+```
 
 `FrameInfo.surface` is deliberately limited to capture-time surface identity and
 geometry. It does not carry:
