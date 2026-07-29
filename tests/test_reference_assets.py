@@ -7,7 +7,7 @@ import numpy as np
 from geometry.point import Point
 from geometry.rect import Rect
 from geometry.size import Size
-from imaging import PixelFormat, RasterImage
+from imaging import PixelFormat, RasterImage, crop_image
 from vision.reference_assets import (
     AssetRegionOrigin,
     ContentRegionOrigin,
@@ -167,6 +167,25 @@ class ReferenceAssetsTest(unittest.TestCase):
         ).resolve_content_placement("control.store_button")
 
         self.assertIsNone(placement)
+
+    def test_reference_image_materializes_logical_crop(self) -> None:
+        root = RasterImage(
+            pixels=np.arange(5 * 7, dtype=np.uint8).reshape(5, 7),
+            pixel_format=PixelFormat.GRAY8,
+        )
+        cropped = crop_image(
+            root,
+            bounds=Rect(x=1, y=1, width=4, height=3),
+        )
+
+        asset = ReferenceImage(
+            key="control.button",
+            image=cropped,
+        )
+
+        np.testing.assert_array_equal(asset.pixels, cropped.pixels)
+        self.assertFalse(np.shares_memory(asset.pixels, root.pixels))
+        self.assertTrue(asset.image.is_contiguous)
 
     def test_reference_image_can_preserve_color_pixels(self) -> None:
         asset = ReferenceImage(
