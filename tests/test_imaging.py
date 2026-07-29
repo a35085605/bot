@@ -89,7 +89,7 @@ class ImagingTest(unittest.TestCase):
                 bounds=Rect(x=4, y=3, width=2, height=2),
             )
 
-    def test_view_is_zero_copy_and_tracks_root_bounds(self) -> None:
+    def test_view_is_zero_copy_and_exposes_only_local_raster_data(self) -> None:
         root = RasterImage(
             pixels=np.arange(6 * 8 * 3, dtype=np.uint8).reshape(6, 8, 3),
             pixel_format=PixelFormat.BGR24,
@@ -101,52 +101,49 @@ class ImagingTest(unittest.TestCase):
         )
 
         self.assertIsInstance(view, RasterImageView)
-        self.assertIs(view.root, root)
-        self.assertEqual(
-            view.bounds_in_root,
-            Rect(x=2, y=1, width=4, height=3),
-        )
+        self.assertFalse(hasattr(view, "root"))
+        self.assertFalse(hasattr(view, "bounds_in_root"))
+        self.assertFalse(hasattr(view, "view"))
+        self.assertFalse(hasattr(view, "local_rect_to_root"))
+        self.assertFalse(hasattr(view, "root_rect_to_local"))
         self.assertEqual(view.bounds, Rect(x=0, y=0, width=4, height=3))
         self.assertEqual(view.size, Size(width=4, height=3))
         self.assertFalse(view.pixels.flags.writeable)
         self.assertTrue(np.shares_memory(view.pixels, root.pixels))
         np.testing.assert_array_equal(view.pixels, root.pixels[1:4, 2:6, :])
 
-    def test_nested_view_flattens_directly_to_root(self) -> None:
+    def test_view_cannot_be_constructed_directly(self) -> None:
+        with self.assertRaisesRegex(TypeError, "use crop_image_view"):
+            RasterImageView()
+
+    def test_nested_view_flattens_directly_to_backing_image(self) -> None:
         root = RasterImage(
             pixels=np.arange(10 * 12, dtype=np.uint8).reshape(10, 12),
             pixel_format=PixelFormat.GRAY8,
         )
-        parent = root.view(Rect(x=3, y=2, width=7, height=6))
-
-        child = parent.view(Rect(x=2, y=1, width=3, height=4))
-
-        self.assertIs(child.root, root)
-        self.assertEqual(
-            child.bounds_in_root,
-            Rect(x=5, y=3, width=3, height=4),
+        parent = crop_image_view(
+            root,
+            bounds=Rect(x=3, y=2, width=7, height=6),
         )
+
+        child = crop_image_view(
+            parent,
+            bounds=Rect(x=2, y=1, width=3, height=4),
+        )
+
         np.testing.assert_array_equal(child.pixels, root.pixels[3:7, 5:8])
         self.assertTrue(np.shares_memory(child.pixels, root.pixels))
-
-    def test_view_converts_rects_between_local_and_root(self) -> None:
-        root = RasterImage(
-            pixels=np.zeros((20, 30), dtype=np.uint8),
-            pixel_format=PixelFormat.GRAY8,
-        )
-        view = root.view(Rect(x=8, y=5, width=10, height=9))
-        local = Rect(x=2, y=3, width=4, height=2)
-        expected_root = Rect(x=10, y=8, width=4, height=2)
-
-        self.assertEqual(view.local_rect_to_root(local), expected_root)
-        self.assertEqual(view.root_rect_to_local(expected_root), local)
+        self.assertTrue(np.shares_memory(child.pixels, parent.pixels))
 
     def test_materialize_image_copies_view_into_owned_raster(self) -> None:
         root = RasterImage(
             pixels=np.arange(5 * 7, dtype=np.uint8).reshape(5, 7),
             pixel_format=PixelFormat.GRAY8,
         )
-        view = root.view(Rect(x=1, y=1, width=4, height=3))
+        view = crop_image_view(
+            root,
+            bounds=Rect(x=1, y=1, width=4, height=3),
+        )
 
         materialized = materialize_image(view)
 
@@ -167,7 +164,10 @@ class ImagingTest(unittest.TestCase):
             pixels=np.arange(8 * 9, dtype=np.uint8).reshape(8, 9),
             pixel_format=PixelFormat.GRAY8,
         )
-        view = root.view(Rect(x=2, y=1, width=5, height=6))
+        view = crop_image_view(
+            root,
+            bounds=Rect(x=2, y=1, width=5, height=6),
+        )
 
         cropped = crop_image(
             view,
@@ -182,10 +182,16 @@ class ImagingTest(unittest.TestCase):
             pixels=np.zeros((5, 6), dtype=np.uint8),
             pixel_format=PixelFormat.GRAY8,
         )
-        parent = root.view(Rect(x=1, y=1, width=3, height=3))
+        parent = crop_image_view(
+            root,
+            bounds=Rect(x=1, y=1, width=3, height=3),
+        )
 
         with self.assertRaises(ValueError):
-            parent.view(Rect(x=2, y=2, width=2, height=2))
+            crop_image_view(
+                parent,
+                bounds=Rect(x=2, y=2, width=2, height=2),
+            )
 
     def test_opencv_nearest_resize_is_deterministic(self) -> None:
         image = RasterImage(

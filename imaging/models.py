@@ -128,55 +128,74 @@ class RasterImage:
     def bounds(self) -> Rect:
         return Rect(x=0, y=0, width=self.width, height=self.height)
 
-    def view(self, bounds: Rect) -> RasterImageView:
-        """Create a zero-copy rectangular view in image-local coordinates."""
 
-        if not isinstance(bounds, Rect):
-            raise TypeError("view bounds must be Rect")
-        if not self.bounds.contains_rect(bounds):
-            raise ValueError("view bounds must be contained by image bounds")
-        return RasterImageView(root=self, bounds_in_root=bounds)
-
-
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, slots=True, init=False, eq=False)
 class RasterImageView:
-    """Immutable rectangular zero-copy view of one root ``RasterImage``.
+    """Read-only borrowed raster backed by one owned ``RasterImage``.
 
-    Every view stores its rectangle directly in root-raster coordinates.
-    Creating a view from another view composes the local offset immediately,
-    so no parent-view chain is retained. Resize, rotation, padding, arbitrary
-    strides, and other non-translation mappings are intentionally not views.
+    Backing placement exists only to retain the owned raster and compose nested
+    zero-copy crops. Consumers observe a local raster whose bounds begin at
+    ``(0, 0)``; coordinate-space placement belongs to higher-level models.
     """
 
-    root: RasterImage = field(compare=False, hash=False, repr=False)
-    bounds_in_root: Rect
+    _backing_image: RasterImage = field(
+        compare=False,
+        hash=False,
+        repr=False,
+    )
+    _bounds_in_backing: Rect = field(
+        compare=False,
+        hash=False,
+        repr=False,
+    )
     _pixels: ImagePixels = field(
-        init=False,
         compare=False,
         hash=False,
         repr=False,
     )
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.root, RasterImage):
-            raise TypeError("view root must be RasterImage")
-        if not isinstance(self.bounds_in_root, Rect):
-            raise TypeError("bounds_in_root must be Rect")
-        if not self.root.bounds.contains_rect(self.bounds_in_root):
+    def __init__(self) -> None:
+        raise TypeError(
+            "RasterImageView cannot be constructed directly; "
+            "use crop_image_view()"
+        )
+
+    @classmethod
+    def _from_backing(
+        cls,
+        *,
+        backing_image: RasterImage,
+        bounds_in_backing: Rect,
+    ) -> RasterImageView:
+        if not isinstance(backing_image, RasterImage):
+            raise TypeError("backing_image must be RasterImage")
+        if not isinstance(bounds_in_backing, Rect):
+            raise TypeError("bounds_in_backing must be Rect")
+        if not backing_image.bounds.contains_rect(bounds_in_backing):
             raise ValueError(
-                "view bounds must be contained by root raster bounds"
+                "view bounds must be contained by backing image bounds"
             )
 
         pixels = _slice_pixels(
-            self.root.pixels,
-            bounds=self.bounds_in_root,
+            backing_image.pixels,
+            bounds=bounds_in_backing,
         )
-        if not np.shares_memory(pixels, self.root.pixels):
-            raise RuntimeError("view pixels must share memory with root raster")
+        if not np.shares_memory(pixels, backing_image.pixels):
+            raise RuntimeError(
+                "view pixels must share memory with backing image"
+            )
         if pixels.flags.writeable:
             raise RuntimeError("view pixels must be read-only")
 
-        object.__setattr__(self, "_pixels", pixels)
+        instance = object.__new__(cls)
+        object.__setattr__(instance, "_backing_image", backing_image)
+        object.__setattr__(
+            instance,
+            "_bounds_in_backing",
+            bounds_in_backing,
+        )
+        object.__setattr__(instance, "_pixels", pixels)
+        return instance
 
     @property
     def pixels(self) -> ImagePixels:
@@ -184,15 +203,15 @@ class RasterImageView:
 
     @property
     def pixel_format(self) -> PixelFormat:
-        return self.root.pixel_format
+        return self._backing_image.pixel_format
 
     @property
     def width(self) -> int:
-        return self.bounds_in_root.width
+        return int(self.pixels.shape[1])
 
     @property
     def height(self) -> int:
-        return self.bounds_in_root.height
+        return int(self.pixels.shape[0])
 
     @property
     def dtype(self) -> np.dtype:
@@ -215,41 +234,3 @@ class RasterImageView:
     @property
     def is_contiguous(self) -> bool:
         return bool(self.pixels.flags.c_contiguous)
-
-    def view(self, bounds: Rect) -> RasterImageView:
-        """Create a child view and flatten it directly onto the root raster."""
-
-        if not isinstance(bounds, Rect):
-            raise TypeError("view bounds must be Rect")
-        if not self.bounds.contains_rect(bounds):
-            raise ValueError("view bounds must be contained by parent view")
-
-        return RasterImageView(
-            root=self.root,
-            bounds_in_root=bounds.translated(
-                dx=self.bounds_in_root.left,
-                dy=self.bounds_in_root.top,
-            ),
-        )
-
-    def local_rect_to_root(self, rect: Rect) -> Rect:
-        if not isinstance(rect, Rect):
-            raise TypeError("local rect must be Rect")
-        if not self.bounds.contains_rect(rect):
-            raise ValueError("local rect must be contained by view bounds")
-        return rect.translated(
-            dx=self.bounds_in_root.left,
-            dy=self.bounds_in_root.top,
-        )
-
-    def root_rect_to_local(self, rect: Rect) -> Rect:
-        if not isinstance(rect, Rect):
-            raise TypeError("root rect must be Rect")
-        if not self.bounds_in_root.contains_rect(rect):
-            raise ValueError(
-                "root rect must be contained by view bounds in root"
-            )
-        return rect.translated(
-            dx=-self.bounds_in_root.left,
-            dy=-self.bounds_in_root.top,
-        )
