@@ -5,6 +5,16 @@ import unittest
 
 import numpy as np
 
+from capture import (
+    CapturedFrame,
+    CaptureQuality,
+    CaptureStreamId,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+    PixelFormat,
+)
 from content import (
     CapturedContent,
     ConfiguredContentCropExtractor,
@@ -16,16 +26,6 @@ from content import (
 )
 from geometry.point import Point
 from geometry.rect import Rect
-from observation import (
-    CapturedFrame,
-    CaptureQuality,
-    CaptureStreamId,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    PixelFormat,
-)
 
 
 class ContentBoundaryTest(unittest.TestCase):
@@ -49,7 +49,7 @@ class ContentBoundaryTest(unittest.TestCase):
             ),
             root_bounds=bounds,
             source_id="game-window",
-            window=None,
+            surface=None,
             root_to_screen=CoordinateTransform(
                 source=CoordinateSpace.ROOT,
                 target=CoordinateSpace.SCREEN,

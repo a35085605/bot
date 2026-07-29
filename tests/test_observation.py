@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import unittest
 
 import numpy as np
 
-from geometry.point import Point
-from geometry.rect import Rect
-from observation import (
+from capture import (
     CapturedFrame,
     CaptureQuality,
     CaptureStreamId,
@@ -17,171 +14,83 @@ from observation import (
     FrameId,
     FrameInfo,
     PixelFormat,
-    WindowContext,
 )
+from geometry.rect import Rect
+from observation import ObservationBundle
+from target_runtime import (
+    TargetAvailability,
+    TargetId,
+    TargetRuntimeSnapshot,
+)
+from temporal import TemporalSnapshot
 
 
 class ObservationTest(unittest.TestCase):
-    def _frame_info(self) -> FrameInfo:
-        return FrameInfo(
-            frame_id=FrameId(7),
-            stream_id=CaptureStreamId(" session-1 "),
-            captured_at=datetime(
-                2026,
-                7,
-                27,
-                12,
-                0,
-                tzinfo=timezone.utc,
-            ),
-            root_bounds=Rect(x=0, y=0, width=100, height=50),
-            source_id=" game-window ",
-            window=WindowContext(
-                window_id=" hwnd:42 ",
-                client_bounds_screen=Rect(
-                    x=200,
-                    y=300,
-                    width=200,
-                    height=100,
+    def _capture(self, captured_at: datetime) -> CapturedFrame:
+        return CapturedFrame(
+            info=FrameInfo(
+                frame_id=FrameId(1),
+                stream_id=CaptureStreamId("stream-1"),
+                captured_at=captured_at,
+                root_bounds=Rect(x=0, y=0, width=4, height=3),
+                source_id="source-1",
+                surface=None,
+                root_to_screen=CoordinateTransform(
+                    source=CoordinateSpace.ROOT,
+                    target=CoordinateSpace.SCREEN,
                 ),
-                process_id=1234,
-                title=" Example Game ",
-                is_foreground=True,
+                capture_backend="test.capture",
             ),
-            root_to_screen=CoordinateTransform(
-                source=CoordinateSpace.ROOT,
-                target=CoordinateSpace.SCREEN,
-                scale_x=2,
-                scale_y=2,
-                offset_x=200,
-                offset_y=300,
-            ),
-            capture_backend=" dxgi ",
-        )
-
-    def test_frame_contract_normalizes_identity_and_context(self) -> None:
-        info = self._frame_info()
-
-        self.assertEqual(info.stream_id.value, "session-1")
-        self.assertEqual(info.source_id, "game-window")
-        self.assertIsNotNone(info.window)
-        assert info.window is not None
-        self.assertEqual(info.window.window_id, "hwnd:42")
-        self.assertEqual(info.window.title, "Example Game")
-        self.assertEqual(info.capture_backend, "dxgi")
-        self.assertEqual(
-            info.capture_bounds_screen,
-            Rect(x=200, y=300, width=200, height=100),
-        )
-
-    def test_coordinate_transform_maps_root_geometry(self) -> None:
-        info = self._frame_info()
-
-        self.assertEqual(
-            info.root_point_to_screen(Point(x=10, y=20)),
-            Point(x=220, y=340),
-        )
-        self.assertEqual(
-            info.root_rect_to_screen(
-                Rect(x=10, y=5, width=20, height=10)
-            ),
-            Rect(x=220, y=310, width=40, height=20),
-        )
-        self.assertEqual(
-            info.root_to_screen.inverse().point(Point(x=220, y=340)),
-            Point(x=10, y=20),
-        )
-
-    def test_frame_can_describe_desktop_capture_without_window(self) -> None:
-        info = FrameInfo(
-            frame_id=FrameId(1),
-            stream_id=CaptureStreamId("session-1"),
-            captured_at=datetime.now(timezone.utc),
-            root_bounds=Rect(x=0, y=0, width=1920, height=1080),
-            source_id="desktop-1",
-            window=None,
-            root_to_screen=CoordinateTransform(
-                source=CoordinateSpace.ROOT,
-                target=CoordinateSpace.SCREEN,
-                offset_x=-1920,
-            ),
-            capture_backend="test.desktop",
-        )
-
-        self.assertIsNone(info.window)
-        self.assertEqual(
-            info.capture_bounds_screen,
-            Rect(x=-1920, y=0, width=1920, height=1080),
-        )
-
-    def test_frame_capture_may_extend_outside_related_window(self) -> None:
-        info = FrameInfo(
-            frame_id=FrameId(1),
-            stream_id=CaptureStreamId("session-1"),
-            captured_at=datetime.now(timezone.utc),
-            root_bounds=Rect(x=0, y=0, width=100, height=100),
-            source_id="desktop-region",
-            window=WindowContext(
-                window_id="hwnd:42",
-                client_bounds_screen=Rect(
-                    x=25,
-                    y=25,
-                    width=50,
-                    height=50,
-                ),
-            ),
-            root_to_screen=CoordinateTransform(
-                source=CoordinateSpace.ROOT,
-                target=CoordinateSpace.SCREEN,
-            ),
-            capture_backend="test.capture",
-        )
-
-        self.assertEqual(
-            info.capture_bounds_screen,
-            Rect(x=0, y=0, width=100, height=100),
-        )
-
-    def test_captured_frame_owns_immutable_pixels(self) -> None:
-        source = np.arange(5000, dtype=np.uint8).reshape(50, 100)
-        frame = CapturedFrame(
-            info=self._frame_info(),
-            pixels=source,
+            pixels=np.zeros((3, 4), dtype=np.uint8),
             pixel_format=PixelFormat.GRAY8,
-            quality=CaptureQuality(usable=True, sharpness=0.9),
+            quality=CaptureQuality(usable=True),
         )
 
-        source[0, 0] = 99
+    def test_bundle_preserves_independent_observation_times(self) -> None:
+        reference = datetime(2026, 7, 29, 10, 0, 1, tzinfo=timezone.utc)
+        bundle = ObservationBundle(
+            cycle_id=" cycle-1 ",
+            temporal=TemporalSnapshot(
+                observed_at=reference,
+                monotonic_seconds=100.0,
+                observer_id="test.clock",
+            ),
+            capture=self._capture(reference - timedelta(seconds=1)),
+            runtime=TargetRuntimeSnapshot(
+                target_id=TargetId("target-1"),
+                observed_at=reference - timedelta(milliseconds=300),
+                availability=TargetAvailability.AVAILABLE,
+                inspector_id="test.runtime",
+            ),
+        )
 
-        self.assertEqual(int(frame.pixels[0, 0]), 0)
-        self.assertFalse(frame.pixels.flags.writeable)
-        with self.assertRaises(ValueError):
-            frame.pixels.setflags(write=True)
-        with self.assertRaises(FrozenInstanceError):
-            frame.quality = CaptureQuality(usable=False)
+        self.assertEqual(bundle.cycle_id, "cycle-1")
+        self.assertEqual(
+            bundle.coherence.capture_skew,
+            timedelta(seconds=1),
+        )
+        self.assertEqual(
+            bundle.coherence.runtime_skew,
+            timedelta(milliseconds=300),
+        )
+        self.assertEqual(
+            bundle.coherence.maximum_skew,
+            timedelta(seconds=1),
+        )
 
-    def test_captured_frame_validates_pixel_format_shape(self) -> None:
-        with self.assertRaises(ValueError):
-            CapturedFrame(
-                info=self._frame_info(),
-                pixels=np.zeros((50, 100, 3), dtype=np.uint8),
-                pixel_format=PixelFormat.BGRA32,
-                quality=CaptureQuality(usable=True),
-            )
+    def test_bundle_does_not_require_visual_capture(self) -> None:
+        bundle = ObservationBundle(
+            cycle_id="clock-only",
+            temporal=TemporalSnapshot(
+                observed_at=datetime.now(timezone.utc),
+                monotonic_seconds=10.0,
+                observer_id="test.clock",
+            ),
+        )
 
-    def test_window_context_rejects_impossible_state(self) -> None:
-        with self.assertRaises(ValueError):
-            WindowContext(
-                window_id="hwnd:42",
-                client_bounds_screen=Rect(
-                    x=0,
-                    y=0,
-                    width=100,
-                    height=100,
-                ),
-                is_foreground=True,
-                is_minimized=True,
-            )
+        self.assertIsNone(bundle.capture)
+        self.assertIsNone(bundle.runtime)
+        self.assertEqual(bundle.coherence.maximum_skew, timedelta(0))
 
 
 if __name__ == "__main__":

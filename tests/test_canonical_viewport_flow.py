@@ -3,10 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from content import ContentFrame, ContentPlacementInCapture
-from evidence import EvidenceSet
-from geometry.rect import Rect
-from observation import (
+from capture import (
     CaptureQuality,
     CaptureStreamId,
     CoordinateSpace,
@@ -14,6 +11,9 @@ from observation import (
     FrameId,
     FrameInfo,
 )
+from content import ContentFrame, ContentPlacementInCapture
+from evidence import EvidenceSet
+from geometry.rect import Rect
 from semantic_perception import (
     SemanticPerceptionConfig,
     SemanticSnapshotBuilder,
@@ -35,7 +35,7 @@ class ContentFlowTest(unittest.TestCase):
             ),
             root_bounds=Rect(x=0, y=0, width=1920, height=1200),
             source_id="desktop-capture",
-            window=None,
+            surface=None,
             root_to_screen=CoordinateTransform(
                 source=CoordinateSpace.ROOT,
                 target=CoordinateSpace.SCREEN,

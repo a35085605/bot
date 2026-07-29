@@ -1,4 +1,4 @@
-from observation import CaptureQuality, FrameId, FrameInfo
+from capture import CaptureQuality, FrameId, FrameInfo
 from world_model.identities import (
     ControlKey,
     IndicatorKey,
