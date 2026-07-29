@@ -38,6 +38,7 @@ class ImagingTest(unittest.TestCase):
         )
         self.assertFalse(image.pixels.flags.writeable)
         self.assertTrue(image.is_contiguous)
+        self.assertTrue(image.is_materialized)
         self.assertEqual(image.size, Size(width=4, height=3))
         self.assertEqual(image.dtype, np.dtype(np.uint8))
         self.assertEqual(image.channel_count, 1)
@@ -86,6 +87,7 @@ class ImagingTest(unittest.TestCase):
         self.assertEqual(cropped.size, Size(width=4, height=3))
         self.assertFalse(cropped.pixels.flags.writeable)
         self.assertFalse(cropped.is_contiguous)
+        self.assertFalse(cropped.is_materialized)
         self.assertIs(cropped.pixel_format, PixelFormat.BGR24)
 
     def test_full_crop_reuses_same_logical_raster(self) -> None:
@@ -142,6 +144,7 @@ class ImagingTest(unittest.TestCase):
         self.assertFalse(np.shares_memory(materialized.pixels, root.pixels))
         self.assertFalse(materialized.pixels.flags.writeable)
         self.assertTrue(materialized.is_contiguous)
+        self.assertTrue(materialized.is_materialized)
 
     def test_materialize_image_reuses_owned_raster(self) -> None:
         image = RasterImage(
