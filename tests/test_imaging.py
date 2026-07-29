@@ -13,6 +13,7 @@ from imaging import (
     RasterImageView,
     crop_image,
     crop_image_view,
+    materialize_image,
 )
 from imaging.adapters import OpenCVImageResizer
 
@@ -140,18 +141,26 @@ class ImagingTest(unittest.TestCase):
         self.assertEqual(view.local_rect_to_root(local), expected_root)
         self.assertEqual(view.root_rect_to_local(expected_root), local)
 
-    def test_materialized_view_is_independently_owned(self) -> None:
+    def test_materialize_image_copies_view_into_owned_raster(self) -> None:
         root = RasterImage(
             pixels=np.arange(5 * 7, dtype=np.uint8).reshape(5, 7),
             pixel_format=PixelFormat.GRAY8,
         )
         view = root.view(Rect(x=1, y=1, width=4, height=3))
 
-        materialized = view.materialize()
+        materialized = materialize_image(view)
 
         np.testing.assert_array_equal(materialized.pixels, view.pixels)
         self.assertFalse(np.shares_memory(materialized.pixels, root.pixels))
         self.assertFalse(materialized.pixels.flags.writeable)
+
+    def test_materialize_image_reuses_owned_raster(self) -> None:
+        image = RasterImage(
+            pixels=np.arange(12, dtype=np.uint8).reshape(3, 4),
+            pixel_format=PixelFormat.GRAY8,
+        )
+
+        self.assertIs(materialize_image(image), image)
 
     def test_owned_crop_accepts_view_local_coordinates(self) -> None:
         root = RasterImage(
