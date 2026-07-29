@@ -7,6 +7,7 @@ import unittest
 import numpy as np
 
 from capture import (
+    AcquiredFrame,
     CapturedFrame,
     CaptureQuality,
     CaptureStreamId,
@@ -15,11 +16,13 @@ from capture import (
     CoordinateTransform,
     FrameId,
     FrameInfo,
+    MaterializingFrameSource,
     PixelFormat,
+    materialize_capture,
 )
 from geometry.point import Point
 from geometry.rect import Rect
-from imaging import RasterImage
+from imaging import RasterImage, crop_image
 
 
 class CaptureTest(unittest.TestCase):
@@ -160,6 +163,86 @@ class CaptureTest(unittest.TestCase):
             frame.pixels.setflags(write=True)
         with self.assertRaises(FrozenInstanceError):
             frame.quality = CaptureQuality(usable=False)
+
+    def test_captured_frame_rejects_logical_crop(self) -> None:
+        root = RasterImage(
+            pixels=np.arange(52 * 102, dtype=np.uint8).reshape(52, 102),
+            pixel_format=PixelFormat.GRAY8,
+        )
+        cropped = crop_image(
+            root,
+            bounds=Rect(x=1, y=1, width=100, height=50),
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "must own independent contiguous storage",
+        ):
+            CapturedFrame(
+                info=self._frame_info(),
+                image=cropped,
+                quality=CaptureQuality(usable=True),
+            )
+
+    def test_materialize_capture_crosses_ownership_boundary(self) -> None:
+        root = RasterImage(
+            pixels=np.arange(52 * 102, dtype=np.uint8).reshape(52, 102),
+            pixel_format=PixelFormat.GRAY8,
+        )
+        cropped = crop_image(
+            root,
+            bounds=Rect(x=1, y=1, width=100, height=50),
+        )
+        acquired = AcquiredFrame(
+            info=self._frame_info(),
+            image=cropped,
+            quality=CaptureQuality(usable=True),
+        )
+
+        frame = materialize_capture(acquired)
+
+        self.assertTrue(frame.image.is_materialized)
+        self.assertTrue(frame.image.is_contiguous)
+        self.assertFalse(np.shares_memory(frame.pixels, root.pixels))
+        np.testing.assert_array_equal(frame.pixels, cropped.pixels)
+
+    def test_materializing_frame_source_normalizes_backend_output(self) -> None:
+        root = RasterImage(
+            pixels=np.arange(52 * 102, dtype=np.uint8).reshape(52, 102),
+            pixel_format=PixelFormat.GRAY8,
+        )
+        cropped = crop_image(
+            root,
+            bounds=Rect(x=1, y=1, width=100, height=50),
+        )
+        acquired = AcquiredFrame(
+            info=self._frame_info(),
+            image=cropped,
+            quality=CaptureQuality(usable=True),
+        )
+
+        class Backend:
+            def capture(self) -> AcquiredFrame:
+                return acquired
+
+        frame = MaterializingFrameSource(backend=Backend()).capture()
+
+        self.assertIsInstance(frame, CapturedFrame)
+        self.assertTrue(frame.image.is_materialized)
+        self.assertFalse(np.shares_memory(frame.pixels, root.pixels))
+
+    def test_materializing_frame_source_rejects_invalid_backend_result(
+        self,
+    ) -> None:
+        class Backend:
+            def capture(self) -> object:
+                return object()
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "must return AcquiredFrame",
+        ):
+            MaterializingFrameSource(backend=Backend()).capture()
 
     def test_captured_frame_validates_image_size(self) -> None:
         with self.assertRaises(ValueError):
