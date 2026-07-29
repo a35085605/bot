@@ -360,30 +360,66 @@ class FrameInfo:
         return self.root_to_screen.rect(rect)
 
 
+def _validate_frame_payload(
+    *,
+    info: object,
+    image: object,
+    quality: object,
+    field_prefix: str,
+) -> tuple[FrameInfo, RasterImage, CaptureQuality]:
+    if not isinstance(info, FrameInfo):
+        raise TypeError(f"{field_prefix} info must be FrameInfo")
+    if not isinstance(image, RasterImage):
+        raise TypeError(f"{field_prefix} image must be RasterImage")
+    if not isinstance(quality, CaptureQuality):
+        raise TypeError(f"{field_prefix} quality must be CaptureQuality")
+    if (
+        image.width != info.root_bounds.width
+        or image.height != info.root_bounds.height
+    ):
+        raise ValueError(
+            f"{field_prefix} image size must match root bounds: "
+            f"expected {info.root_bounds.width}x{info.root_bounds.height}, "
+            f"got {image.width}x{image.height}"
+        )
+    return info, image, quality
+
+
 @dataclass(frozen=True, slots=True)
-class CapturedFrame:
-    """One immutable raster frame and its capture-time context."""
+class AcquiredFrame:
+    """Backend frame before the capture ownership boundary is crossed."""
 
     info: FrameInfo
     image: RasterImage
     quality: CaptureQuality
 
     def __post_init__(self) -> None:
-        if not isinstance(self.info, FrameInfo):
-            raise TypeError("captured frame info must be FrameInfo")
-        if not isinstance(self.image, RasterImage):
-            raise TypeError("captured frame image must be RasterImage")
-        if not isinstance(self.quality, CaptureQuality):
-            raise TypeError("captured frame quality must be CaptureQuality")
-        if (
-            self.image.width != self.info.root_bounds.width
-            or self.image.height != self.info.root_bounds.height
-        ):
+        _validate_frame_payload(
+            info=self.info,
+            image=self.image,
+            quality=self.quality,
+            field_prefix="acquired frame",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CapturedFrame:
+    """One immutable owned raster frame and its capture-time context."""
+
+    info: FrameInfo
+    image: RasterImage
+    quality: CaptureQuality
+
+    def __post_init__(self) -> None:
+        _, image, _ = _validate_frame_payload(
+            info=self.info,
+            image=self.image,
+            quality=self.quality,
+            field_prefix="captured frame",
+        )
+        if not image.is_materialized:
             raise ValueError(
-                "captured frame image size must match root bounds: "
-                f"expected {self.info.root_bounds.width}x"
-                f"{self.info.root_bounds.height}, "
-                f"got {self.image.width}x{self.image.height}"
+                "captured frame image must own independent contiguous storage"
             )
 
     @property
