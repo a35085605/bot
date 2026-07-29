@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
-from imaging import PixelFormat, RasterImage
+from imaging import PixelFormat, RasterImage, materialize_image
 from vision.reference_assets.domain.keys import (
     normalize_reference_asset_key,
 )
@@ -64,6 +64,11 @@ class ReferenceImage:
     def __post_init__(self) -> None:
         if not isinstance(self.image, RasterImage):
             raise TypeError("reference image must be RasterImage")
+        object.__setattr__(
+            self,
+            "image",
+            materialize_image(self.image),
+        )
         coverage_mask = None
         if self.coverage_mask is not None:
             coverage_mask = _freeze_coverage_mask(
