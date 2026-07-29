@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from numbers import Integral
 from typing import TypeAlias
 
+from geometry.rect import Rect
 from target_runtime.domain.identities import (
     ControlChannelId,
     ReadinessBlocker,
@@ -27,12 +29,37 @@ def _validate_optional_bool(
     return value
 
 
+def _validate_optional_process_id(value: object) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise TypeError("window process id must be an integer or None")
+    normalized = int(value)
+    if normalized <= 0:
+        raise ValueError("window process id must be greater than zero")
+    return normalized
+
+
+def _validate_optional_rect(
+    value: object,
+    *,
+    field_name: str,
+) -> Rect | None:
+    if value is not None and not isinstance(value, Rect):
+        raise TypeError(f"{field_name} must be Rect or None")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class WindowChannelState:
-    """Observed desktop-window state for one control channel."""
+    """Latest observed desktop-window state for one control channel."""
 
     window_id: str | None = None
     foreground_window_id: str | None = None
+    process_id: int | None = None
+    title: str | None = None
+    client_bounds_screen: Rect | None = None
+    window_bounds_screen: Rect | None = None
     focus: FocusStatus = FocusStatus.UNKNOWN
     minimized: bool | None = None
     visible: bool | None = None
@@ -50,6 +77,19 @@ class WindowChannelState:
             self.foreground_window_id,
             field_name="foreground window id",
         )
+        process_id = _validate_optional_process_id(self.process_id)
+        title = normalize_optional_text(
+            self.title,
+            field_name="window title",
+        )
+        client_bounds_screen = _validate_optional_rect(
+            self.client_bounds_screen,
+            field_name="window client bounds",
+        )
+        window_bounds_screen = _validate_optional_rect(
+            self.window_bounds_screen,
+            field_name="window bounds",
+        )
         minimized = _validate_optional_bool(
             self.minimized,
             field_name="window minimized",
@@ -62,6 +102,13 @@ class WindowChannelState:
             self.responsive,
             field_name="window responsive",
         )
+
+        if (
+            window_bounds_screen is not None
+            and client_bounds_screen is not None
+            and not window_bounds_screen.contains_rect(client_bounds_screen)
+        ):
+            raise ValueError("window bounds must contain client bounds")
 
         if self.focus is FocusStatus.TARGET:
             if window_id is None or foreground_window_id is None:
@@ -96,6 +143,18 @@ class WindowChannelState:
             self,
             "foreground_window_id",
             foreground_window_id,
+        )
+        object.__setattr__(self, "process_id", process_id)
+        object.__setattr__(self, "title", title)
+        object.__setattr__(
+            self,
+            "client_bounds_screen",
+            client_bounds_screen,
+        )
+        object.__setattr__(
+            self,
+            "window_bounds_screen",
+            window_bounds_screen,
         )
         object.__setattr__(self, "minimized", minimized)
         object.__setattr__(self, "visible", visible)
@@ -196,7 +255,7 @@ class ControlChannelSnapshot:
         for index, blocker in enumerate(self.blockers):
             if not isinstance(blocker, ReadinessBlocker):
                 raise TypeError(
-                    f"channel blockers[{index}] must be ReadinessBlocker"
+                    f"channels blockers[{index}] must be ReadinessBlocker"
                 )
         if len(set(self.blockers)) != len(self.blockers):
             raise ValueError("channel blockers cannot contain duplicates")
