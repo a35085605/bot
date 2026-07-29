@@ -88,6 +88,10 @@ game bundle.
 - an immutable `RasterImage` whose pixels and format are validated together; and
 - an optional detector-neutral coverage mask.
 
+`RasterImage` hides whether its current storage is independently owned or a
+shared read-only slice. `ReferenceImage` is a long-lived asset boundary, so it
+materializes the raster into independent contiguous storage when necessary.
+
 It does not contain template matching thresholds, suppression policy, matching
 method, or detector-specific result interpretation.
 
