@@ -24,7 +24,7 @@ The package separates four concerns:
 
 - storage says where the materialized bytes currently live;
 - origin says where the pixels came from;
-- `ReferenceImage` owns detector-neutral decoded pixels;
+- `ReferenceImage` owns detector-neutral decoded pixels; and
 - each detector adapts the reference image into its own input model.
 
 ## Structured origins
@@ -86,7 +86,7 @@ game bundle.
 
 - stable asset key;
 - immutable `RasterImage` pixels;
-- explicit grayscale, BGR, or BGRA format;
+- explicit grayscale, BGR, or BGRA format; and
 - an optional detector-neutral coverage mask.
 
 It does not contain template matching thresholds, suppression policy, matching
@@ -114,11 +114,6 @@ TemplateMatchEngine
 The matching service keeps the reference asset key for result and Evidence
 provenance, while the engine receives only detector-local image data.
 
-## Compatibility
-
-The existing `template_assets` package remains available for current callers.
-New detector-neutral asset definitions should use `reference_assets`.
-
-The old `template_matching.domain.models.Template` name now aliases
-`MatchTemplate`, not the runtime object from `template_assets`. Matching
-repository compatibility names point to `ReferenceAssetProvider`.
+New code imports asset models, ports, and adapters directly from
+`vision.reference_assets`. Template matching imports only `MatchTemplate` and
+its detector-specific engine contracts.
