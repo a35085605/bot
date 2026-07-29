@@ -1,36 +1,46 @@
-Observation
-  Frame + window context + coordinate transform
+Observation coordination
+  Capture + Target Runtime + Temporal snapshots
         │
-        ▼
-Vision primitives
+        ├───────────────┐
+        │               │
+        ▼               ▼
+Visual Capture      Runtime / time policy
+  pixels + geometry   focus + readiness + date/time
+        │               │
+        ▼               │
+Vision primitives      │
   template / OCR / hash / color / features detection
-        │
-        ▼
-Evidence
+        │               │
+        ▼               │
+Evidence                │
   detector result + score + ROI + provenance
-        │
-        ▼
-Semantic perception
+        │               │
+        ▼               │
+Semantic perception     │
   evidence fusion + calibration + recognition
-        │
-        ▼
-World snapshot
+        │               │
+        ▼               │
+World snapshot          │
   semantic observations for one frame
-        │
-        ▼
-World-state tracking
+        │               │
+        ▼               │
+World-state tracking    │
   temporal stabilization + transitions + memory
-        │
-        ▼
+        │               │
+        └───────┬───────┘
+                ▼
 Decision
-  goals + stable state + task memory → intent
+  goals + stable state + runtime + temporal policy → intent
         │
         ▼
 Execution
-  intent → validated input commands → execution report
+  intent → revalidated input commands → execution report
         │
         ▼
 Effect verification
   did the expected state transition occur?
         │
-        └──────────────────────► Observation
+        └──────────────────────► Observation coordination
+
+See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
+for the Capture, Target Runtime, Temporal, and coordination boundaries.
