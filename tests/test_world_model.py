@@ -7,11 +7,11 @@ from geometry.rect import Rect
 from observation import (
     CaptureQuality,
     CaptureStreamId,
+    CaptureSurface,
     CoordinateSpace,
     CoordinateTransform,
     FrameId,
     FrameInfo,
-    WindowContext,
 )
 from world_model import (
     Confidence,
@@ -65,15 +65,14 @@ class WorldModelTest(unittest.TestCase):
                     height=1080,
                 ),
                 source_id="game-window",
-                window=WindowContext(
-                    window_id="hwnd:42",
+                surface=CaptureSurface(
+                    surface_id="hwnd:42",
                     client_bounds_screen=Rect(
                         x=100,
                         y=200,
                         width=1920,
                         height=1080,
                     ),
-                    is_foreground=True,
                 ),
                 root_to_screen=CoordinateTransform(
                     source=CoordinateSpace.ROOT,
@@ -212,7 +211,7 @@ class WorldModelTest(unittest.TestCase):
             captured_at=snapshot.frame.captured_at,
             root_bounds=snapshot.frame.root_bounds,
             source_id=snapshot.frame.source_id,
-            window=snapshot.frame.window,
+            surface=snapshot.frame.surface,
             root_to_screen=snapshot.frame.root_to_screen,
             capture_backend=snapshot.frame.capture_backend,
         )
