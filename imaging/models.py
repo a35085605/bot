@@ -253,11 +253,3 @@ class RasterImageView:
             dx=-self.bounds_in_root.left,
             dy=-self.bounds_in_root.top,
         )
-
-    def materialize(self) -> RasterImage:
-        """Copy this view into an independently owned immutable raster."""
-
-        return RasterImage(
-            pixels=self.pixels,
-            pixel_format=self.pixel_format,
-        )
