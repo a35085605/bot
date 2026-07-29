@@ -5,9 +5,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Generic, TypeAlias, TypeVar
 
+from capture import FrameId
 from geometry.point import Point
 from geometry.rect import Rect
-from observation import FrameId
 from target_runtime.domain.identities import ControlChannelId, TargetId
 
 
