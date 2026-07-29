@@ -5,6 +5,9 @@ import unittest
 
 import numpy as np
 
+from vision.reference_assets.adapters.providers.in_memory import (
+    InMemoryReferenceAssetProvider,
+)
 from vision.template_assets.adapters.providers.in_memory import (
     InMemoryTemplateProvider,
 )
@@ -19,7 +22,10 @@ from vision.template_assets.domain.models import Template
 from vision.template_matching.adapters.repositories.in_memory import (
     InMemoryTemplateRepository,
 )
-from vision.template_matching.domain.models import Template as LegacyTemplate
+from vision.template_matching.domain.models import (
+    MatchTemplate,
+    Template as LegacyTemplate,
+)
 
 
 class _ManifestRepository:
@@ -98,7 +104,9 @@ class TemplateAssetsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             template.validity_mask.setflags(write=True)
 
-    def test_manifest_keeps_storage_and_provenance_outside_template(self) -> None:
+    def test_manifest_keeps_storage_and_provenance_outside_template(
+        self,
+    ) -> None:
         entry = TemplateManifestEntry(
             key="submit",
             storage=TemplateStorageDefinition(
@@ -120,7 +128,10 @@ class TemplateAssetsTest(unittest.TestCase):
             entry.validity_mask_storage.locator.path,
             "assets/submit-mask.png",
         )
-        self.assertEqual(entry.provenance.source, "login screen capture")
+        self.assertEqual(
+            entry.provenance.source,
+            "login screen capture",
+        )
 
     def test_resolver_verifies_content_and_returns_template(self) -> None:
         content = bytes([1, 2, 3, 4])
@@ -145,9 +156,17 @@ class TemplateAssetsTest(unittest.TestCase):
             np.array([[1, 2], [3, 4]], dtype=np.uint8),
         )
 
-    def test_legacy_imports_reference_new_asset_types(self) -> None:
-        self.assertIs(LegacyTemplate, Template)
-        self.assertIs(InMemoryTemplateRepository, InMemoryTemplateProvider)
+    def test_matching_compatibility_names_use_new_boundary(self) -> None:
+        self.assertIs(LegacyTemplate, MatchTemplate)
+        self.assertIsNot(LegacyTemplate, Template)
+        self.assertIs(
+            InMemoryTemplateRepository,
+            InMemoryReferenceAssetProvider,
+        )
+        self.assertIsNot(
+            InMemoryTemplateRepository,
+            InMemoryTemplateProvider,
+        )
 
 
 if __name__ == "__main__":

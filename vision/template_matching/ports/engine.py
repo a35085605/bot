@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from vision.template_assets.domain.models import GrayImage, Template
+from vision.template_matching.domain.models import (
+    GrayImage,
+    MatchTemplate,
+)
 from vision.template_matching.domain.results import MatchCandidate
 
 
@@ -10,7 +13,7 @@ class TemplateMatchEngine(Protocol):
     def match(
         self,
         image: GrayImage,
-        template: Template,
+        template: MatchTemplate,
         *,
         candidate_floor: float,
     ) -> tuple[MatchCandidate, ...]:

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from vision.template_assets.domain.models import (
-    GrayImage,
-    Template,
+from vision.reference_assets.ports.provider import ReferenceAssetProvider
+from vision.template_matching.application.template_factory import (
+    ReferenceMatchTemplateFactory,
 )
-from vision.template_assets.ports.provider import TemplateProvider
+from vision.template_matching.domain.models import (
+    GrayImage,
+    MatchTemplate,
+)
 from vision.template_matching.domain.results import (
     EvaluatedMatches,
     MatchCandidate,
@@ -22,13 +25,17 @@ from vision.template_matching.ports.engine import TemplateMatchEngine
 class TemplateMatchingService:
     def __init__(
         self,
-        repository: TemplateProvider,
+        repository: ReferenceAssetProvider,
         engine: TemplateMatchEngine,
         suppression: MatchSuppressionPolicy,
+        template_factory: ReferenceMatchTemplateFactory | None = None,
     ) -> None:
         self._repository = repository
         self._engine = engine
         self._suppression = suppression
+        self._template_factory = (
+            template_factory or ReferenceMatchTemplateFactory()
+        )
 
     def match(
         self,
@@ -38,7 +45,7 @@ class TemplateMatchingService:
         candidate_floor: float,
     ) -> TemplateMatchResult:
         """
-        Collect matching candidates.
+        Resolve one reference asset and collect matching candidates.
 
         candidate_floor controls candidate collection only. It does not
         determine whether a candidate should be accepted by a use case.
@@ -50,14 +57,15 @@ class TemplateMatchingService:
             field_name="candidate_floor",
         )
 
-        template = self._repository.require(template_key)
+        asset = self._repository.require(template_key)
+        template = self._template_factory.create(asset)
 
         if (
             template.width > image.shape[1]
             or template.height > image.shape[0]
         ):
             return TemplateMatchResult(
-                template_key=template.key,
+                template_key=asset.key,
                 candidate_floor=candidate_floor,
             )
 
@@ -74,12 +82,10 @@ class TemplateMatchingService:
             candidate_floor=candidate_floor,
         )
 
-        suppressed = self._suppression.suppress(
-            candidates
-        )
+        suppressed = self._suppression.suppress(candidates)
 
         return TemplateMatchResult.from_retained_candidates(
-            template_key=template.key,
+            template_key=asset.key,
             candidate_floor=candidate_floor,
             retained_candidates=suppressed,
         )
@@ -101,7 +107,6 @@ class TemplateMatchingService:
         candidate_floor must not exceed threshold because doing so would
         omit candidates that should be accepted by threshold.
         """
-
         threshold = normalize_unit_score(
             threshold,
             field_name="threshold",
@@ -141,30 +146,25 @@ class TemplateMatchingService:
             raise TypeError(
                 "matching image must be a numpy array"
             )
-
         if image.dtype != np.uint8:
             raise TypeError(
                 "matching image must be uint8, "
                 f"got {image.dtype}"
             )
-
         if image.ndim != 2:
             raise ValueError(
                 "matching image must be 2D grayscale, "
                 f"got shape {image.shape}"
             )
-
         if image.size == 0:
-            raise ValueError(
-                "matching image cannot be empty"
-            )
+            raise ValueError("matching image cannot be empty")
 
     @staticmethod
     def _validate_engine_candidates(
         *,
         candidates: object,
         image: GrayImage,
-        template: Template,
+        template: MatchTemplate,
         candidate_floor: float,
     ) -> tuple[MatchCandidate, ...]:
         if not isinstance(candidates, tuple):
@@ -183,7 +183,6 @@ class TemplateMatchingService:
                     "MatchCandidate, "
                     f"got {type(candidate).__name__}"
                 )
-
             if candidate.score < candidate_floor:
                 raise ValueError(
                     f"engine result[{index}] score is below "
@@ -193,7 +192,6 @@ class TemplateMatchingService:
                 )
 
             rect = candidate.rect
-
             if (
                 rect.width != template.width
                 or rect.height != template.height
@@ -204,13 +202,11 @@ class TemplateMatchingService:
                     f"expected={template.width}x{template.height}, "
                     f"got={rect.width}x{rect.height}"
                 )
-
             if rect.x < 0 or rect.y < 0:
                 raise ValueError(
                     f"engine result[{index}] has negative "
                     f"coordinates: ({rect.x}, {rect.y})"
                 )
-
             if (
                 rect.right > image_width
                 or rect.bottom > image_height

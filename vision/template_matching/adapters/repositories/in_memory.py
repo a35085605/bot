@@ -1,12 +1,16 @@
-"""Compatibility alias for the provider moved to template_assets."""
+"""Compatibility names for the reference asset provider."""
 
-from vision.template_assets.adapters.providers.in_memory import (
-    InMemoryTemplateProvider,
+from vision.reference_assets.adapters.providers.in_memory import (
+    InMemoryReferenceAssetProvider,
 )
 
-InMemoryTemplateRepository = InMemoryTemplateProvider
+
+InMemoryTemplateProvider = InMemoryReferenceAssetProvider
+InMemoryTemplateRepository = InMemoryReferenceAssetProvider
+
 
 __all__ = [
+    "InMemoryReferenceAssetProvider",
     "InMemoryTemplateProvider",
     "InMemoryTemplateRepository",
 ]
