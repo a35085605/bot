@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import cv2
+import numpy as np
 
 from geometry.size import Size
 from imaging.models import Interpolation, RasterImage
@@ -31,8 +32,9 @@ class OpenCVImageResizer:
         if not isinstance(interpolation, Interpolation):
             raise TypeError("interpolation must be Interpolation")
 
+        source = np.ascontiguousarray(image.pixels)
         resized = cv2.resize(
-            image.pixels,
+            source,
             dsize=(target_size.width, target_size.height),
             interpolation=_INTERPOLATION_FLAGS[interpolation],
         )

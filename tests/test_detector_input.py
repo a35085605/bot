@@ -44,6 +44,9 @@ class DetectorInputPreparationTest(unittest.TestCase):
             self.image.pixels[1:4, 2:6],
         )
         self.assertFalse(prepared.provenance.resized)
+        self.assertTrue(
+            np.shares_memory(prepared.pixels, self.image.pixels)
+        )
         self.assertEqual(
             prepared.context.roi_root,
             Rect(x=2, y=1, width=4, height=3),

@@ -1,71 +1,33 @@
 from __future__ import annotations
 
 from geometry.rect import Rect
-from imaging.models import RasterImage, RasterImageView
+from imaging.models import RasterImage
 
 
-RasterSource = RasterImage | RasterImageView
-
-
-def _validate_source(image: object) -> RasterSource:
-    if not isinstance(image, (RasterImage, RasterImageView)):
-        raise TypeError("image must be RasterImage or RasterImageView")
+def _validate_image(image: object) -> RasterImage:
+    if not isinstance(image, RasterImage):
+        raise TypeError("image must be RasterImage")
     return image
 
 
-def materialize_image(image: RasterSource) -> RasterImage:
-    """Return an independently owned immutable raster.
+def materialize_image(image: RasterImage) -> RasterImage:
+    """Return an independent contiguous raster when the source is borrowed.
 
-    An existing ``RasterImage`` already owns its pixels and is returned
-    unchanged. A ``RasterImageView`` is copied so the result no longer retains
-    or shares memory with its backing image.
+    A raster that already owns its storage is returned unchanged. A logical
+    crop is copied so the result no longer retains or shares memory with its
+    backing raster.
     """
 
-    source = _validate_source(image)
-    if isinstance(source, RasterImage):
-        return source
-
-    return RasterImage(
-        pixels=source.pixels,
-        pixel_format=source.pixel_format,
-    )
+    return _validate_image(image)._materialize()
 
 
-def crop_image(image: RasterSource, *, bounds: Rect) -> RasterImage:
-    """Return an independently owned crop using image-local coordinates."""
+def crop_image(image: RasterImage, *, bounds: Rect) -> RasterImage:
+    """Return a logical zero-copy crop using image-local coordinates.
 
-    return materialize_image(crop_image_view(image, bounds=bounds))
-
-
-def crop_image_view(
-    image: RasterSource,
-    *,
-    bounds: Rect,
-) -> RasterImageView:
-    """Return a zero-copy local raster view.
-
-    Nested crops are flattened directly onto the owned backing image without
-    exposing backing placement as part of the public raster contract.
+    The result remains the public ``RasterImage`` type. Its private storage
+    retains the owned backing buffer and nested crops are flattened onto that
+    buffer. Call ``materialize_image()`` at a lifetime boundary that requires
+    an independent contiguous raster.
     """
 
-    source = _validate_source(image)
-    if not isinstance(bounds, Rect):
-        raise TypeError("bounds must be Rect")
-    if not source.bounds.contains_rect(bounds):
-        raise ValueError("bounds must be contained by source image")
-
-    if isinstance(source, RasterImage):
-        backing_image = source
-        bounds_in_backing = bounds
-    else:
-        backing_image = source._backing_image
-        parent_bounds = source._bounds_in_backing
-        bounds_in_backing = bounds.translated(
-            dx=parent_bounds.left,
-            dy=parent_bounds.top,
-        )
-
-    return RasterImageView._from_backing(
-        backing_image=backing_image,
-        bounds_in_backing=bounds_in_backing,
-    )
+    return _validate_image(image)._crop(bounds=bounds)

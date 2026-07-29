@@ -36,8 +36,10 @@ Canonical viewport pixels + viewport-root ROI + requested output size
 
 The top-level `imaging` package owns general raster operations:
 
-- immutable `RasterImage`
-- image-local crop
+- one public immutable logical `RasterImage`
+- private owned and shared-slice storage implementations
+- image-local zero-copy crop
+- explicit materialization into independent contiguous storage
 - interpolation selection
 - the `ImageResizer` capability
 - the OpenCV resize adapter
@@ -76,7 +78,10 @@ crop, resize, or affine warping.
 - an interpolation method
 
 The preparer crops the ROI and resizes it only when its source and output sizes
-differ.
+differ. A crop that does not require resizing remains a logical `RasterImage`
+sharing read-only storage with the source; detector code does not observe that
+storage choice. Concrete adapters make pixels contiguous only when their native
+API requires it.
 
 For this version there is no padding, therefore:
 

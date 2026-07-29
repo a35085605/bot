@@ -3,13 +3,8 @@ from imaging.models import (
     Interpolation,
     PixelFormat,
     RasterImage,
-    RasterImageView,
 )
-from imaging.operations import (
-    crop_image,
-    crop_image_view,
-    materialize_image,
-)
+from imaging.operations import crop_image, materialize_image
 from imaging.ports import ImageResizer
 
 __all__ = [
@@ -18,8 +13,6 @@ __all__ = [
     "Interpolation",
     "PixelFormat",
     "RasterImage",
-    "RasterImageView",
     "crop_image",
-    "crop_image_view",
     "materialize_image",
 ]

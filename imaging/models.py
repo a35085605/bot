@@ -45,6 +45,52 @@ class Interpolation(str, Enum):
     AREA = "area"
 
 
+def _validate_pixels(
+    pixels: object,
+    *,
+    pixel_format: PixelFormat,
+) -> ImagePixels:
+    if not isinstance(pixels, np.ndarray):
+        raise TypeError("raster pixels must be a numpy array")
+    if not isinstance(pixel_format, PixelFormat):
+        raise TypeError("pixel_format must be PixelFormat")
+    if pixels.dtype != pixel_format.dtype:
+        raise TypeError(
+            "raster pixel dtype must match pixel format: "
+            f"expected {pixel_format.dtype}, got {pixels.dtype}"
+        )
+    if pixels.ndim != pixel_format.dimension_count:
+        raise ValueError(
+            "raster pixel dimensions must match pixel format: "
+            f"expected {pixel_format.dimension_count}D, "
+            f"got shape {pixels.shape}"
+        )
+    if pixels.shape[0] <= 0 or pixels.shape[1] <= 0:
+        raise ValueError("raster width and height must be greater than zero")
+    if (
+        pixel_format.dimension_count == 3
+        and pixels.shape[2] != pixel_format.channel_count
+    ):
+        raise ValueError(
+            "raster channel count must match pixel format: "
+            f"expected {pixel_format.channel_count}, "
+            f"got {pixels.shape[2]}"
+        )
+    return pixels
+
+
+def _freeze_owned_pixels(
+    pixels: object,
+    *,
+    pixel_format: PixelFormat,
+) -> ImagePixels:
+    source = _validate_pixels(pixels, pixel_format=pixel_format)
+    return np.frombuffer(
+        source.tobytes(order="C"),
+        dtype=pixel_format.dtype,
+    ).reshape(source.shape)
+
+
 def _slice_pixels(
     pixels: ImagePixels,
     *,
@@ -62,148 +108,172 @@ def _slice_pixels(
     ]
 
 
-@dataclass(frozen=True, slots=True)
-class RasterImage:
-    """Independently owned immutable raster with explicit pixel format."""
-
+@dataclass(frozen=True, slots=True, init=False, eq=False)
+class _OwnedRasterStorage:
     pixels: ImagePixels = field(compare=False, hash=False, repr=False)
     pixel_format: PixelFormat
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.pixels, np.ndarray):
-            raise TypeError("raster pixels must be a numpy array")
-        if not isinstance(self.pixel_format, PixelFormat):
-            raise TypeError("pixel_format must be PixelFormat")
-        if self.pixels.dtype != self.pixel_format.dtype:
-            raise TypeError(
-                "raster pixel dtype must match pixel format: "
-                f"expected {self.pixel_format.dtype}, "
-                f"got {self.pixels.dtype}"
-            )
-        if self.pixels.ndim != self.pixel_format.dimension_count:
-            raise ValueError(
-                "raster pixel dimensions must match pixel format: "
-                f"expected {self.pixel_format.dimension_count}D, "
-                f"got shape {self.pixels.shape}"
-            )
-        if self.pixels.shape[0] <= 0 or self.pixels.shape[1] <= 0:
-            raise ValueError("raster width and height must be greater than zero")
-        if (
-            self.pixel_format.dimension_count == 3
-            and self.pixels.shape[2] != self.pixel_format.channel_count
-        ):
-            raise ValueError(
-                "raster channel count must match pixel format: "
-                f"expected {self.pixel_format.channel_count}, "
-                f"got {self.pixels.shape[2]}"
-            )
-
-        frozen = np.frombuffer(
-            self.pixels.tobytes(order="C"),
-            dtype=self.pixel_format.dtype,
-        ).reshape(self.pixels.shape)
-        object.__setattr__(self, "pixels", frozen)
-
-    @property
-    def width(self) -> int:
-        return int(self.pixels.shape[1])
-
-    @property
-    def height(self) -> int:
-        return int(self.pixels.shape[0])
-
-    @property
-    def dtype(self) -> np.dtype:
-        return self.pixels.dtype
-
-    @property
-    def channel_count(self) -> int:
-        return self.pixel_format.channel_count
-
-    @property
-    def size(self) -> Size:
-        return Size(width=self.width, height=self.height)
-
-    @property
-    def bounds(self) -> Rect:
-        return Rect(x=0, y=0, width=self.width, height=self.height)
+    def __init__(
+        self,
+        *,
+        pixels: ImagePixels,
+        pixel_format: PixelFormat,
+    ) -> None:
+        object.__setattr__(
+            self,
+            "pixels",
+            _freeze_owned_pixels(
+                pixels,
+                pixel_format=pixel_format,
+            ),
+        )
+        object.__setattr__(self, "pixel_format", pixel_format)
 
 
 @dataclass(frozen=True, slots=True, init=False, eq=False)
-class RasterImageView:
-    """Read-only borrowed raster backed by one owned ``RasterImage``.
-
-    Backing placement exists only to retain the owned raster and compose nested
-    zero-copy crops. Consumers observe a local raster whose bounds begin at
-    ``(0, 0)``; coordinate-space placement belongs to higher-level models.
-    """
-
-    _backing_image: RasterImage = field(
+class _RasterSliceStorage:
+    backing: _OwnedRasterStorage = field(
         compare=False,
         hash=False,
         repr=False,
     )
-    _bounds_in_backing: Rect = field(
+    bounds_in_backing: Rect = field(
         compare=False,
         hash=False,
         repr=False,
     )
-    _pixels: ImagePixels = field(
-        compare=False,
-        hash=False,
-        repr=False,
-    )
+    pixels: ImagePixels = field(compare=False, hash=False, repr=False)
 
-    def __init__(self) -> None:
-        raise TypeError(
-            "RasterImageView cannot be constructed directly; "
-            "use crop_image_view()"
-        )
-
-    @classmethod
-    def _from_backing(
-        cls,
+    def __init__(
+        self,
         *,
-        backing_image: RasterImage,
+        backing: _OwnedRasterStorage,
         bounds_in_backing: Rect,
-    ) -> RasterImageView:
-        if not isinstance(backing_image, RasterImage):
-            raise TypeError("backing_image must be RasterImage")
+    ) -> None:
+        if not isinstance(backing, _OwnedRasterStorage):
+            raise TypeError("backing must be owned raster storage")
         if not isinstance(bounds_in_backing, Rect):
             raise TypeError("bounds_in_backing must be Rect")
-        if not backing_image.bounds.contains_rect(bounds_in_backing):
+
+        backing_bounds = Rect(
+            x=0,
+            y=0,
+            width=int(backing.pixels.shape[1]),
+            height=int(backing.pixels.shape[0]),
+        )
+        if not backing_bounds.contains_rect(bounds_in_backing):
             raise ValueError(
-                "view bounds must be contained by backing image bounds"
+                "slice bounds must be contained by backing image bounds"
             )
 
         pixels = _slice_pixels(
-            backing_image.pixels,
+            backing.pixels,
             bounds=bounds_in_backing,
         )
-        if not np.shares_memory(pixels, backing_image.pixels):
+        if not np.shares_memory(pixels, backing.pixels):
             raise RuntimeError(
-                "view pixels must share memory with backing image"
+                "slice pixels must share memory with backing image"
             )
         if pixels.flags.writeable:
-            raise RuntimeError("view pixels must be read-only")
+            raise RuntimeError("slice pixels must be read-only")
 
-        instance = object.__new__(cls)
-        object.__setattr__(instance, "_backing_image", backing_image)
+        object.__setattr__(self, "backing", backing)
         object.__setattr__(
-            instance,
-            "_bounds_in_backing",
+            self,
+            "bounds_in_backing",
             bounds_in_backing,
         )
-        object.__setattr__(instance, "_pixels", pixels)
-        return instance
-
-    @property
-    def pixels(self) -> ImagePixels:
-        return self._pixels
+        object.__setattr__(self, "pixels", pixels)
 
     @property
     def pixel_format(self) -> PixelFormat:
-        return self._backing_image.pixel_format
+        return self.backing.pixel_format
+
+
+_RasterStorage: TypeAlias = _OwnedRasterStorage | _RasterSliceStorage
+
+
+@dataclass(frozen=True, slots=True, init=False, eq=False)
+class RasterImage:
+    """Immutable logical raster with private storage and explicit format.
+
+    A raster may own an independent contiguous buffer or share a read-only
+    slice of another raster. That storage choice is deliberately hidden from
+    consumers. Use ``materialize_image()`` when an independent contiguous
+    lifetime is required.
+    """
+
+    _storage: _RasterStorage = field(
+        compare=False,
+        hash=False,
+        repr=False,
+    )
+
+    def __init__(
+        self,
+        *,
+        pixels: ImagePixels,
+        pixel_format: PixelFormat,
+    ) -> None:
+        object.__setattr__(
+            self,
+            "_storage",
+            _OwnedRasterStorage(
+                pixels=pixels,
+                pixel_format=pixel_format,
+            ),
+        )
+
+    @classmethod
+    def _from_storage(cls, storage: _RasterStorage) -> RasterImage:
+        if not isinstance(storage, (_OwnedRasterStorage, _RasterSliceStorage)):
+            raise TypeError("storage must be raster storage")
+        instance = object.__new__(cls)
+        object.__setattr__(instance, "_storage", storage)
+        return instance
+
+    def _crop(self, *, bounds: Rect) -> RasterImage:
+        if not isinstance(bounds, Rect):
+            raise TypeError("bounds must be Rect")
+        if not self.bounds.contains_rect(bounds):
+            raise ValueError("bounds must be contained by source image")
+        if bounds == self.bounds:
+            return self
+
+        storage = self._storage
+        if isinstance(storage, _OwnedRasterStorage):
+            backing = storage
+            bounds_in_backing = bounds
+        else:
+            backing = storage.backing
+            parent = storage.bounds_in_backing
+            bounds_in_backing = bounds.translated(
+                dx=parent.left,
+                dy=parent.top,
+            )
+
+        return RasterImage._from_storage(
+            _RasterSliceStorage(
+                backing=backing,
+                bounds_in_backing=bounds_in_backing,
+            )
+        )
+
+    def _materialize(self) -> RasterImage:
+        if isinstance(self._storage, _OwnedRasterStorage):
+            return self
+        return RasterImage(
+            pixels=self.pixels,
+            pixel_format=self.pixel_format,
+        )
+
+    @property
+    def pixels(self) -> ImagePixels:
+        return self._storage.pixels
+
+    @property
+    def pixel_format(self) -> PixelFormat:
+        return self._storage.pixel_format
 
     @property
     def width(self) -> int:
@@ -227,8 +297,6 @@ class RasterImageView:
 
     @property
     def bounds(self) -> Rect:
-        """View-local bounds beginning at ``(0, 0)``."""
-
         return Rect(x=0, y=0, width=self.width, height=self.height)
 
     @property
