@@ -1,10 +1,14 @@
-"""Compatibility alias for the provider moved to template_assets."""
+"""Compatibility names for the reference asset provider port."""
 
-from vision.template_assets.ports.provider import TemplateProvider
+from vision.reference_assets.ports.provider import ReferenceAssetProvider
 
-TemplateRepository = TemplateProvider
+
+TemplateProvider = ReferenceAssetProvider
+TemplateRepository = ReferenceAssetProvider
+
 
 __all__ = [
+    "ReferenceAssetProvider",
     "TemplateProvider",
     "TemplateRepository",
 ]
