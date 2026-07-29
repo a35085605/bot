@@ -27,18 +27,6 @@ class ContentPlacementInCapture:
         source = self.bounds_capture
         return Rect(x=0, y=0, width=source.width, height=source.height)
 
-    @property
-    def source_bounds_capture(self) -> Rect:
-        """Compatibility alias for the previous placement field name."""
-
-        return self.bounds_capture
-
-    @property
-    def root_bounds(self) -> Rect:
-        """Compatibility alias for the previous content-root name."""
-
-        return self.bounds_content
-
     def content_point_to_capture(self, point: Point) -> Point:
         if not isinstance(point, Point):
             raise TypeError("content point must be Point")
@@ -71,29 +59,15 @@ class ContentPlacementInCapture:
             raise ValueError("rect must be inside content capture bounds")
         return rect.translated(dx=-source.left, dy=-source.top)
 
-    # Temporary compatibility methods. New code should use explicit
-    # content/capture names instead of the ambiguous "root" vocabulary.
-    def root_point_to_capture(self, point: Point) -> Point:
-        return self.content_point_to_capture(point)
-
-    def root_rect_to_capture(self, rect: Rect) -> Rect:
-        return self.content_rect_to_capture(rect)
-
-    def capture_point_to_root(self, point: Point) -> Point:
-        return self.capture_point_to_content(point)
-
-    def capture_rect_to_root(self, rect: Rect) -> Rect:
-        return self.capture_rect_to_content(rect)
-
 
 @dataclass(frozen=True, slots=True)
 class ContentFrame:
     """Clean-content coordinate context derived from exactly one capture.
 
     ``capture`` retains observation identity and capture-time provenance.
-    ``placement`` establishes content-space. The derived ``frame`` exists only
-    as a compatibility bridge for the current world model. Execution must use
-    an execution target resolver and revalidate current runtime geometry rather
+    ``placement`` establishes content-space. The derived ``frame`` supplies the
+    current world model with content-root bounds and a content-to-screen
+    transform. Execution must still revalidate current runtime geometry rather
     than treating the capture-time transform as an execution guarantee.
     """
 
@@ -149,22 +123,6 @@ class ContentFrame:
     def bounds_content(self) -> Rect:
         return self.placement.bounds_content
 
-    @property
-    def observation(self) -> FrameInfo:
-        """Compatibility alias for the previous viewport field name."""
-
-        return self.capture
-
-    @property
-    def root_bounds(self) -> Rect:
-        """Compatibility alias for the previous content-root name."""
-
-        return self.bounds_content
-
-    @property
-    def source_bounds_capture(self) -> Rect:
-        return self.placement.bounds_capture
-
     def content_point_to_capture(self, point: Point) -> Point:
         return self.placement.content_point_to_capture(point)
 
@@ -176,16 +134,3 @@ class ContentFrame:
 
     def capture_rect_to_content(self, rect: Rect) -> Rect:
         return self.placement.capture_rect_to_content(rect)
-
-    # Temporary compatibility methods for downstream imports.
-    def root_point_to_capture(self, point: Point) -> Point:
-        return self.content_point_to_capture(point)
-
-    def root_rect_to_capture(self, rect: Rect) -> Rect:
-        return self.content_rect_to_capture(rect)
-
-    def capture_point_to_root(self, point: Point) -> Point:
-        return self.capture_point_to_content(point)
-
-    def capture_rect_to_root(self, rect: Rect) -> Rect:
-        return self.capture_rect_to_content(rect)

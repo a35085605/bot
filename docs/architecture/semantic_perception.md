@@ -6,20 +6,20 @@ The `semantic_perception` package converts detector-independent `EvidenceSet`
 values into the semantic observations consumed by `world_model`.
 
 ```text
-CanonicalViewport + EvidenceSet
-              │
-              ▼
+ContentFrame + EvidenceSet
+           │
+           ▼
 Declarative evidence requirements
-              │
-              ├────────► scene hypotheses
-              │
-              └────────► control observations
-                                    │
-                                    ▼
-                             WorldSnapshot
-                                    │
-                                    ▼
-                           WorldStateTracker
+           │
+           ├────────► scene hypotheses
+           │
+           └────────► control observations
+                                 │
+                                 ▼
+                          WorldSnapshot
+                                 │
+                                 ▼
+                        WorldStateTracker
 ```
 
 The package does not run detectors, interpret detector-specific result objects,
@@ -40,26 +40,23 @@ the snapshot keeps the hypotheses but leaves the scene unresolved.
 ## Control rules
 
 A `ControlRule` selects the strongest matching localized evidence item and maps
-its viewport-root bounds to a `ControlObservation`. Missing or non-localized
+its content-root bounds to a `ControlObservation`. Missing or non-localized
 evidence produces `Presence.UNKNOWN`; absence of evidence is not treated as
 proof that a control is absent. Unusable frames suppress scene resolution and
 return configured controls as unknown.
 
 ## Context validation
 
-`SemanticSnapshotBuilder` requires the `EvidenceSet` and
-`CanonicalViewport` to agree on:
+`SemanticSnapshotBuilder` requires the `EvidenceSet` and `ContentFrame` to agree
+on:
 
-- frame ID
-- source ID
-- canonical viewport root bounds
+- frame ID;
+- source ID; and
+- clean-content bounds.
 
-The builder stores `CanonicalViewport.frame` in the resulting `WorldSnapshot`.
-This derived `FrameInfo` uses viewport-root and a direct viewport-root-to-screen
-transform, so the world model never needs the raw capture coordinate space.
-
-The temporary `frame=` compatibility path is valid only when the supplied frame
-is already the canonical viewport.
+The builder stores `ContentFrame.frame` in the resulting `WorldSnapshot`. This
+derived `FrameInfo` uses content-root bounds and a direct content-root-to-screen
+transform, so the world model never needs raw capture coordinates.
 
 ## Example
 
@@ -104,7 +101,7 @@ builder = SemanticSnapshotBuilder(
 )
 
 snapshot = builder.build(
-    viewport=perception_viewport.viewport,
+    content=captured_content.frame,
     quality=frame.quality,
     evidence_set=evidence_set,
 )

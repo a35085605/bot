@@ -104,12 +104,8 @@ class MatchTemplate:
         return int(self.gray.shape[0])
 
 
-Template = MatchTemplate
-
-
 __all__ = [
     "GrayImage",
     "MatchTemplate",
-    "Template",
     "ValidityMask",
 ]

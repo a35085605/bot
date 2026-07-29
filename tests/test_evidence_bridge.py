@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 import unittest
 
+from detector_input import DetectorInputContext, ImagePlacement
 from evidence import (
     EvidenceId,
     EvidenceKind,
@@ -10,11 +11,7 @@ from evidence import (
 )
 from geometry.rect import Rect
 from observation import FrameId
-from perception_integration import (
-    DetectorInputContext,
-    EvidenceAssembler,
-    ImagePlacement,
-)
+from perception_integration import EvidenceAssembler
 
 
 class EvidenceBridgeTest(unittest.TestCase):

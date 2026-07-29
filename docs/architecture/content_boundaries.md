@@ -3,9 +3,8 @@
 ## Vocabulary
 
 The pipeline uses **content** for the clean application pixels derived from one
-raw capture. The term **viewport** is no longer used for this concept because a
-viewport may also mean an application-level camera, scroll viewport, or visible
-panel.
+raw capture. A viewport may instead mean an application camera, scroll viewport,
+or visible panel, so it is not used for this capture boundary.
 
 ```text
 CapturedFrame                       CapturedContent
@@ -33,11 +32,11 @@ window chrome, desktop pixels, or letterbox bars.
 
 A successful extraction returns `CapturedContent`, which contains:
 
-- immutable clean-content pixels
-- a `ContentFrame`
-- `ContentPlacementInCapture`
-- pixel format
-- extraction provenance and confidence
+- immutable clean-content pixels;
+- a `ContentFrame`;
+- `ContentPlacementInCapture`;
+- pixel format; and
+- extraction provenance and confidence.
 
 `ContentPlacementInCapture` describes the real raw-capture rectangle represented
 by content-space. Content-space starts at `(0, 0)` and preserves the selected
@@ -45,12 +44,12 @@ rectangle's pixel dimensions.
 
 This boundary does not:
 
-- resize or normalize pixels
-- select detector ROIs
-- run detectors
-- assign semantic meaning
-- choose a control channel
-- resolve screen or device coordinates
+- resize or normalize pixels;
+- select detector ROIs;
+- run detectors;
+- assign semantic meaning;
+- choose a control channel; or
+- resolve screen or device coordinates.
 
 Detector crop, resize, padding, and normalization remain in `detector_input` and
 `imaging`.
@@ -62,10 +61,10 @@ Decision and planning produce targets in content-space, such as
 
 `ExecutionTargetResolver` receives:
 
-- the content-space target
-- the originating `ContentFrame`
-- a fresh `TargetRuntimeSnapshot`
-- the selected control channel
+- the content-space target;
+- the originating `ContentFrame`;
+- a fresh `TargetRuntimeSnapshot`; and
+- the selected control channel.
 
 It returns either a native `ResolvedExecutionTarget` or
 `ExecutionTargetUnavailable`.
@@ -86,14 +85,9 @@ AdbExecutionTargetResolver
     ContentPointTarget -> DevicePoint
 ```
 
-## Compatibility
+## World model bridge
 
-The `viewport` package and `perception_integration.viewport` remain temporary
-compatibility layers. New code should import from `content` and `execution`.
-`CanonicalViewport`, `PerceptionViewport`, and the old extraction names delegate
-to the content boundary and should not be used by new orchestration.
-
-`ContentFrame.frame` currently provides a derived `FrameInfo` for compatibility
-with the existing world model. It must not be used as a substitute for an
-execution resolver. A later migration can replace the remaining ambiguous
-`root_*` world-model field names with explicit `content_*` names.
+`ContentFrame.frame` supplies the current world model with content-root bounds
+and a derived content-root-to-screen transform. This bridge preserves the
+existing world snapshot contract; it is not a substitute for execution-time
+runtime inspection and target resolution.
