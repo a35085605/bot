@@ -3,6 +3,15 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
+from capture import (
+    CaptureQuality,
+    CaptureStreamId,
+    CaptureSurface,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+)
 from evidence import (
     Evidence,
     EvidenceId,
@@ -11,15 +20,6 @@ from evidence import (
     EvidenceSet,
 )
 from geometry.rect import Rect
-from observation import (
-    CaptureQuality,
-    CaptureStreamId,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    WindowContext,
-)
 from semantic_perception import (
     ControlRule,
     EvidenceRequirement,
@@ -51,15 +51,14 @@ class SemanticPerceptionTest(unittest.TestCase):
             ),
             root_bounds=Rect(x=0, y=0, width=1920, height=1080),
             source_id="game-window",
-            window=WindowContext(
-                window_id="hwnd:42",
+            surface=CaptureSurface(
+                surface_id="hwnd:42",
                 client_bounds_screen=Rect(
                     x=100,
                     y=200,
                     width=1920,
                     height=1080,
                 ),
-                is_foreground=True,
             ),
             root_to_screen=CoordinateTransform(
                 source=CoordinateSpace.ROOT,
