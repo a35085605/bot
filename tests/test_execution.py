@@ -3,6 +3,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
+from capture import (
+    CaptureStreamId,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+)
 from content import ContentFrame, ContentPlacementInCapture
 from control import ScreenPoint
 from execution import (
@@ -13,13 +20,6 @@ from execution import (
 )
 from geometry.point import Point
 from geometry.rect import Rect
-from observation import (
-    CaptureStreamId,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-)
 from target_runtime import (
     ControlCapability,
     ControlChannelId,
@@ -95,7 +95,7 @@ class ExecutionBoundaryTest(unittest.TestCase):
             ),
             root_bounds=Rect(x=0, y=0, width=1920, height=1200),
             source_id="game-window",
-            window=None,
+            surface=None,
             root_to_screen=CoordinateTransform(
                 source=CoordinateSpace.ROOT,
                 target=CoordinateSpace.SCREEN,
@@ -143,6 +143,20 @@ class ExecutionBoundaryTest(unittest.TestCase):
                     details=WindowChannelState(
                         window_id="hwnd:42",
                         foreground_window_id="hwnd:42",
+                        process_id=1234,
+                        title="Example Game",
+                        client_bounds_screen=Rect(
+                            x=100,
+                            y=200,
+                            width=1920,
+                            height=1200,
+                        ),
+                        window_bounds_screen=Rect(
+                            x=90,
+                            y=170,
+                            width=1940,
+                            height=1240,
+                        ),
                         focus=FocusStatus.TARGET,
                         minimized=False,
                         visible=True,
@@ -172,6 +186,18 @@ class ExecutionBoundaryTest(unittest.TestCase):
         self.assertIsInstance(result, ResolvedExecutionTarget)
         assert isinstance(result, ResolvedExecutionTarget)
         self.assertEqual(result.point_native, ScreenPoint(x=270, y=340))
+
+    def test_runtime_owns_operational_window_metadata(self) -> None:
+        runtime = self._runtime()
+        channel = runtime.channel(ControlChannelId("window"))
+
+        self.assertIsNotNone(channel)
+        assert channel is not None
+        details = channel.details
+        assert isinstance(details, WindowChannelState)
+        self.assertEqual(details.title, "Example Game")
+        self.assertEqual(details.process_id, 1234)
+        self.assertEqual(details.focus, FocusStatus.TARGET)
 
     def test_resolver_rejects_stale_frame_identity(self) -> None:
         content = self._content()
