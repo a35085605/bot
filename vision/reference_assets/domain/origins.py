@@ -7,6 +7,7 @@ import re
 from geometry.point import Point
 from geometry.rect import Rect
 from geometry.size import Size
+from imaging import PixelFormat
 from vision.reference_assets.domain.keys import (
     normalize_reference_asset_key,
 )
@@ -16,7 +17,6 @@ from vision.reference_assets.domain.locators import (
     PackageLocator,
     ReferenceAssetLocator,
 )
-from vision.reference_assets.domain.models import ReferenceImageFormat
 
 
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -69,15 +69,15 @@ class ReferenceContentProfile:
 
     key: str
     size: Size
-    pixel_format: ReferenceImageFormat
+    pixel_format: PixelFormat
 
     def __post_init__(self) -> None:
         if not isinstance(self.size, Size):
             raise TypeError("content profile size must be Size")
-        if not isinstance(self.pixel_format, ReferenceImageFormat):
+        if not isinstance(self.pixel_format, PixelFormat):
             raise TypeError(
                 "content profile pixel_format must be "
-                "ReferenceImageFormat"
+                "PixelFormat"
             )
         object.__setattr__(
             self,

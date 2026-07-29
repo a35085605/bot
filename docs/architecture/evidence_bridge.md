@@ -87,7 +87,7 @@ capture backend, detector implementation, or scheduling policy.
 from detector_input import FixedViewportRoiPreparer
 from geometry.rect import Rect
 from geometry.size import Size
-from imaging import Interpolation, RasterImage
+from imaging import Interpolation
 from imaging.adapters import OpenCVImageResizer
 from perception_integration import EvidenceAssembler
 
@@ -97,7 +97,7 @@ prepared = FixedViewportRoiPreparer(
     frame_id=captured_content.frame_id,
     source_id=captured_content.source_id,
     root_bounds=captured_content.bounds_content,
-    image=RasterImage(pixels=captured_content.pixels),
+    image=captured_content.image,
     roi_root=Rect(x=1200, y=675, width=267, height=150),
     output_size=Size(width=320, height=180),
     interpolation=Interpolation.LINEAR,

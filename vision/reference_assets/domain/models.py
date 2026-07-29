@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
-
 import numpy as np
 import numpy.typing as npt
 
-from imaging import RasterImage
+from imaging import PixelFormat, RasterImage
 from vision.reference_assets.domain.keys import (
     normalize_reference_asset_key,
 )
@@ -15,18 +13,8 @@ from vision.reference_assets.domain.keys import (
 CoverageMask = npt.NDArray[np.uint8]
 
 
-class ReferenceImageFormat(str, Enum):
-    GRAY8 = "gray8"
-    BGR24 = "bgr24"
-    BGRA32 = "bgra32"
-
-    @property
-    def channel_count(self) -> int:
-        if self is ReferenceImageFormat.GRAY8:
-            return 1
-        if self is ReferenceImageFormat.BGR24:
-            return 3
-        return 4
+# Backward-compatible name; the format is owned by imaging.
+ReferenceImageFormat = PixelFormat
 
 
 def _freeze_coverage_mask(
@@ -66,7 +54,6 @@ class ReferenceImage:
 
     key: str
     image: RasterImage
-    pixel_format: ReferenceImageFormat
     coverage_mask: CoverageMask | None = field(
         default=None,
         compare=False,
@@ -77,15 +64,6 @@ class ReferenceImage:
     def __post_init__(self) -> None:
         if not isinstance(self.image, RasterImage):
             raise TypeError("reference image must be RasterImage")
-        if not isinstance(self.pixel_format, ReferenceImageFormat):
-            raise TypeError(
-                "pixel_format must be ReferenceImageFormat"
-            )
-        if self.image.channel_count != self.pixel_format.channel_count:
-            raise ValueError(
-                "reference image channel count must match pixel format"
-            )
-
         coverage_mask = None
         if self.coverage_mask is not None:
             coverage_mask = _freeze_coverage_mask(
@@ -106,6 +84,10 @@ class ReferenceImage:
             "coverage_mask",
             coverage_mask,
         )
+
+    @property
+    def pixel_format(self) -> PixelFormat:
+        return self.image.pixel_format
 
     @property
     def width(self) -> int:

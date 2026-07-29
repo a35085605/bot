@@ -19,6 +19,7 @@ from capture import (
 )
 from geometry.point import Point
 from geometry.rect import Rect
+from imaging import RasterImage
 
 
 class CaptureTest(unittest.TestCase):
@@ -144,8 +145,10 @@ class CaptureTest(unittest.TestCase):
         source = np.arange(5000, dtype=np.uint8).reshape(50, 100)
         frame = CapturedFrame(
             info=self._frame_info(),
-            pixels=source,
-            pixel_format=PixelFormat.GRAY8,
+            image=RasterImage(
+                pixels=source,
+                pixel_format=PixelFormat.GRAY8,
+            ),
             quality=CaptureQuality(usable=True, sharpness=0.9),
         )
 
@@ -158,12 +161,14 @@ class CaptureTest(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             frame.quality = CaptureQuality(usable=False)
 
-    def test_captured_frame_validates_pixel_format_shape(self) -> None:
+    def test_captured_frame_validates_image_size(self) -> None:
         with self.assertRaises(ValueError):
             CapturedFrame(
                 info=self._frame_info(),
-                pixels=np.zeros((50, 100, 3), dtype=np.uint8),
-                pixel_format=PixelFormat.BGRA32,
+                image=RasterImage(
+                    pixels=np.zeros((49, 100, 3), dtype=np.uint8),
+                    pixel_format=PixelFormat.BGR24,
+                ),
                 quality=CaptureQuality(usable=True),
             )
 

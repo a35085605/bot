@@ -26,4 +26,7 @@ def crop_image(image: RasterImage, *, bounds: Rect) -> RasterImage:
             :,
         ]
 
-    return RasterImage(pixels=pixels)
+    return RasterImage(
+        pixels=pixels,
+        pixel_format=image.pixel_format,
+    )

@@ -7,7 +7,7 @@ import numpy as np
 from geometry.point import Point
 from geometry.rect import Rect
 from geometry.size import Size
-from imaging import RasterImage
+from imaging import PixelFormat, RasterImage
 from vision.reference_assets import (
     AssetRegionOrigin,
     ContentRegionOrigin,
@@ -18,7 +18,6 @@ from vision.reference_assets import (
     ReferenceAssetStorageDefinition,
     ReferenceContentProfile,
     ReferenceImage,
-    ReferenceImageFormat,
 )
 from vision.reference_assets.adapters.providers.in_memory import (
     InMemoryReferenceAssetProvider,
@@ -94,7 +93,7 @@ class ReferenceAssetsTest(unittest.TestCase):
         profile = ReferenceContentProfile(
             key="game.main.1920x1080",
             size=Size(width=1920, height=1080),
-            pixel_format=ReferenceImageFormat.BGRA32,
+            pixel_format=PixelFormat.BGRA32,
         )
         homepage = ReferenceAssetManifestEntry(
             key="scene.homepage",
@@ -173,9 +172,9 @@ class ReferenceAssetsTest(unittest.TestCase):
         asset = ReferenceImage(
             key="palette.primary",
             image=RasterImage(
-                pixels=np.ones((2, 3, 3), dtype=np.uint8)
+                pixels=np.ones((2, 3, 3), dtype=np.uint8),
+                pixel_format=PixelFormat.BGR24,
             ),
-            pixel_format=ReferenceImageFormat.BGR24,
         )
 
         self.assertEqual(asset.image.channel_count, 3)
@@ -186,9 +185,9 @@ class ReferenceAssetsTest(unittest.TestCase):
         asset = ReferenceImage(
             key="control.store_button",
             image=RasterImage(
-                pixels=np.ones((2, 3), dtype=np.uint8)
+                pixels=np.ones((2, 3), dtype=np.uint8),
+                pixel_format=PixelFormat.GRAY8,
             ),
-            pixel_format=ReferenceImageFormat.GRAY8,
             coverage_mask=np.array(
                 [
                     [0, 1, 1],
@@ -209,9 +208,9 @@ class ReferenceAssetsTest(unittest.TestCase):
         asset = ReferenceImage(
             key="control.store_button",
             image=RasterImage(
-                pixels=np.ones((2, 2), dtype=np.uint8)
+                pixels=np.ones((2, 2), dtype=np.uint8),
+                pixel_format=PixelFormat.GRAY8,
             ),
-            pixel_format=ReferenceImageFormat.GRAY8,
         )
         engine = _RecordingEngine()
         service = TemplateMatchingService(

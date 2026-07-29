@@ -14,6 +14,30 @@ from geometry.size import Size
 ImagePixels: TypeAlias = npt.NDArray[np.uint8]
 
 
+class PixelFormat(str, Enum):
+    """Storage format required to interpret one raster's pixels."""
+
+    GRAY8 = "gray8"
+    BGR24 = "bgr24"
+    BGRA32 = "bgra32"
+
+    @property
+    def dtype(self) -> np.dtype:
+        return np.dtype(np.uint8)
+
+    @property
+    def channel_count(self) -> int:
+        if self is PixelFormat.GRAY8:
+            return 1
+        if self is PixelFormat.BGR24:
+            return 3
+        return 4
+
+    @property
+    def dimension_count(self) -> int:
+        return 2 if self.channel_count == 1 else 3
+
+
 class Interpolation(str, Enum):
     NEAREST = "nearest"
     LINEAR = "linear"
@@ -23,29 +47,43 @@ class Interpolation(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class RasterImage:
-    """Independently owned immutable uint8 raster."""
+    """Independently owned immutable raster with explicit pixel format."""
 
     pixels: ImagePixels = field(compare=False, hash=False, repr=False)
+    pixel_format: PixelFormat
 
     def __post_init__(self) -> None:
         if not isinstance(self.pixels, np.ndarray):
             raise TypeError("raster pixels must be a numpy array")
-        if self.pixels.dtype != np.uint8:
+        if not isinstance(self.pixel_format, PixelFormat):
+            raise TypeError("pixel_format must be PixelFormat")
+        if self.pixels.dtype != self.pixel_format.dtype:
             raise TypeError(
-                "raster pixels must be uint8, "
+                "raster pixel dtype must match pixel format: "
+                f"expected {self.pixel_format.dtype}, "
                 f"got {self.pixels.dtype}"
             )
-        if self.pixels.ndim not in (2, 3):
+        if self.pixels.ndim != self.pixel_format.dimension_count:
             raise ValueError(
-                "raster pixels must be two- or three-dimensional, "
+                "raster pixel dimensions must match pixel format: "
+                f"expected {self.pixel_format.dimension_count}D, "
                 f"got shape {self.pixels.shape}"
             )
-        if any(dimension <= 0 for dimension in self.pixels.shape):
-            raise ValueError("raster dimensions must be greater than zero")
+        if self.pixels.shape[0] <= 0 or self.pixels.shape[1] <= 0:
+            raise ValueError("raster width and height must be greater than zero")
+        if (
+            self.pixel_format.dimension_count == 3
+            and self.pixels.shape[2] != self.pixel_format.channel_count
+        ):
+            raise ValueError(
+                "raster channel count must match pixel format: "
+                f"expected {self.pixel_format.channel_count}, "
+                f"got {self.pixels.shape[2]}"
+            )
 
         frozen = np.frombuffer(
             self.pixels.tobytes(order="C"),
-            dtype=np.uint8,
+            dtype=self.pixel_format.dtype,
         ).reshape(self.pixels.shape)
         object.__setattr__(self, "pixels", frozen)
 
@@ -58,10 +96,12 @@ class RasterImage:
         return int(self.pixels.shape[0])
 
     @property
+    def dtype(self) -> np.dtype:
+        return self.pixels.dtype
+
+    @property
     def channel_count(self) -> int:
-        if self.pixels.ndim == 2:
-            return 1
-        return int(self.pixels.shape[2])
+        return self.pixel_format.channel_count
 
     @property
     def size(self) -> Size:

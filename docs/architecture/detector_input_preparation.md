@@ -99,10 +99,10 @@ the two rectangles have different dimensions.
 from detector_input import FixedViewportRoiPreparer
 from geometry.rect import Rect
 from geometry.size import Size
-from imaging import Interpolation, RasterImage
+from imaging import Interpolation
 from imaging.adapters import OpenCVImageResizer
 
-source = RasterImage(pixels=perception_viewport.pixels)
+source = perception_viewport.image
 prepared = FixedViewportRoiPreparer(
     resizer=OpenCVImageResizer(),
 ).prepare(

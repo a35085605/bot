@@ -12,7 +12,7 @@ from evidence import (
 )
 from geometry.rect import Rect
 from geometry.size import Size
-from imaging import Interpolation, RasterImage
+from imaging import Interpolation, PixelFormat, RasterImage
 from imaging.adapters import OpenCVImageResizer
 from observation import FrameId
 from perception_integration import EvidenceAssembler
@@ -24,7 +24,8 @@ class DetectorInputPreparationTest(unittest.TestCase):
             resizer=OpenCVImageResizer()
         )
         self.image = RasterImage(
-            pixels=np.arange(6 * 8, dtype=np.uint8).reshape(6, 8)
+            pixels=np.arange(6 * 8, dtype=np.uint8).reshape(6, 8),
+            pixel_format=PixelFormat.GRAY8,
         )
 
     def test_prepares_fixed_roi_without_resize(self) -> None:

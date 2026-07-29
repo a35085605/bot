@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 import math
 from numbers import Integral, Real
 from typing import TypeAlias
 
-import numpy as np
-import numpy.typing as npt
-
 from geometry.point import Point
 from geometry.rect import Rect
+from imaging import ImagePixels, PixelFormat, RasterImage
 
 
-FramePixels: TypeAlias = npt.NDArray[np.uint8]
+FramePixels: TypeAlias = ImagePixels
 
 
 def _normalize_non_empty_text(
@@ -137,20 +135,6 @@ class CaptureStreamId:
 class CoordinateSpace(str, Enum):
     ROOT = "root"
     SCREEN = "screen"
-
-
-class PixelFormat(str, Enum):
-    GRAY8 = "gray8"
-    BGR24 = "bgr24"
-    BGRA32 = "bgra32"
-
-    @property
-    def channel_count(self) -> int:
-        if self is PixelFormat.GRAY8:
-            return 1
-        if self is PixelFormat.BGR24:
-            return 3
-        return 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -378,50 +362,34 @@ class FrameInfo:
 
 @dataclass(frozen=True, slots=True)
 class CapturedFrame:
-    """One independently owned immutable pixel frame and its context."""
+    """One immutable raster frame and its capture-time context."""
 
     info: FrameInfo
-    pixels: FramePixels = field(compare=False, hash=False, repr=False)
-    pixel_format: PixelFormat
+    image: RasterImage
     quality: CaptureQuality
 
     def __post_init__(self) -> None:
         if not isinstance(self.info, FrameInfo):
             raise TypeError("captured frame info must be FrameInfo")
-        if not isinstance(self.pixel_format, PixelFormat):
-            raise TypeError("pixel_format must be PixelFormat")
+        if not isinstance(self.image, RasterImage):
+            raise TypeError("captured frame image must be RasterImage")
         if not isinstance(self.quality, CaptureQuality):
             raise TypeError("captured frame quality must be CaptureQuality")
-        if not isinstance(self.pixels, np.ndarray):
-            raise TypeError("captured frame pixels must be a numpy array")
-        if self.pixels.dtype != np.uint8:
-            raise TypeError(
-                "captured frame pixels must be uint8, "
-                f"got {self.pixels.dtype}"
-            )
-
-        expected_height = self.info.root_bounds.height
-        expected_width = self.info.root_bounds.width
-        expected_channels = self.pixel_format.channel_count
-
-        if expected_channels == 1:
-            expected_shape = (expected_height, expected_width)
-        else:
-            expected_shape = (
-                expected_height,
-                expected_width,
-                expected_channels,
-            )
-
-        if self.pixels.shape != expected_shape:
+        if (
+            self.image.width != self.info.root_bounds.width
+            or self.image.height != self.info.root_bounds.height
+        ):
             raise ValueError(
-                "captured frame pixel shape must match root bounds and "
-                f"pixel format: expected {expected_shape}, "
-                f"got {self.pixels.shape}"
+                "captured frame image size must match root bounds: "
+                f"expected {self.info.root_bounds.width}x"
+                f"{self.info.root_bounds.height}, "
+                f"got {self.image.width}x{self.image.height}"
             )
 
-        frozen = np.frombuffer(
-            self.pixels.tobytes(order="C"),
-            dtype=np.uint8,
-        ).reshape(expected_shape)
-        object.__setattr__(self, "pixels", frozen)
+    @property
+    def pixels(self) -> FramePixels:
+        return self.image.pixels
+
+    @property
+    def pixel_format(self) -> PixelFormat:
+        return self.image.pixel_format
