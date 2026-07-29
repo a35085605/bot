@@ -302,3 +302,9 @@ class RasterImage:
     @property
     def is_contiguous(self) -> bool:
         return bool(self.pixels.flags.c_contiguous)
+
+    @property
+    def is_materialized(self) -> bool:
+        """Whether this raster owns independent contiguous storage."""
+
+        return isinstance(self._storage, _OwnedRasterStorage)

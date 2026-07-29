@@ -1,4 +1,5 @@
 from capture.domain.models import (
+    AcquiredFrame,
     CapturedFrame,
     CaptureQuality,
     CaptureStreamId,
@@ -12,6 +13,7 @@ from capture.domain.models import (
 )
 
 __all__ = [
+    "AcquiredFrame",
     "CapturedFrame",
     "CaptureQuality",
     "CaptureStreamId",
