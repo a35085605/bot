@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from capture import CoordinateSpace, CoordinateTransform, FrameInfo
 from geometry.point import Point
 from geometry.rect import Rect
-from observation import CoordinateSpace, CoordinateTransform, FrameInfo
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +64,7 @@ class ContentPlacementInCapture:
 class ContentFrame:
     """Clean-content coordinate context derived from exactly one capture.
 
-    ``capture`` retains observation identity and capture-time provenance.
+    ``capture`` retains capture identity and capture-time provenance.
     ``placement`` establishes content-space. The derived ``frame`` supplies the
     current world model with content-root bounds and a content-to-screen
     transform. Execution must still revalidate current runtime geometry rather
@@ -113,7 +113,7 @@ class ContentFrame:
                 captured_at=self.capture.captured_at,
                 root_bounds=self.bounds_content,
                 source_id=self.capture.source_id,
-                window=self.capture.window,
+                surface=self.capture.surface,
                 root_to_screen=content_to_screen,
                 capture_backend=self.capture.capture_backend,
             ),
