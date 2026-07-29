@@ -38,4 +38,7 @@ class OpenCVImageResizer:
         )
         if image.pixels.ndim == 3 and resized.ndim == 2:
             resized = resized[:, :, None]
-        return RasterImage(pixels=resized)
+        return RasterImage(
+            pixels=resized,
+            pixel_format=image.pixel_format,
+        )

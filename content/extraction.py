@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from numbers import Real
 from typing import Protocol, TypeAlias
 
-import numpy as np
-
 from content.models import ContentFrame, ContentPlacementInCapture
 from geometry.point import Point
 from geometry.rect import Rect
+from imaging import ImagePixels, PixelFormat, RasterImage, crop_image
 from observation import (
     CapturedFrame,
     FrameId,
     FrameInfo,
-    FramePixels,
-    PixelFormat,
 )
 
 
@@ -81,54 +78,47 @@ class ContentExtractionProvenance:
 
 @dataclass(frozen=True, slots=True)
 class CapturedContent:
-    """Clean pixels and content-space context derived from one raw capture."""
+    """Clean raster and content-space context derived from one capture."""
 
     frame: ContentFrame
-    pixels: FramePixels = field(compare=False, hash=False, repr=False)
-    pixel_format: PixelFormat
+    image: RasterImage
     provenance: ContentExtractionProvenance
     confidence: float = 1.0
 
     def __post_init__(self) -> None:
         if not isinstance(self.frame, ContentFrame):
             raise TypeError("frame must be ContentFrame")
-        if not isinstance(self.pixel_format, PixelFormat):
-            raise TypeError("pixel_format must be PixelFormat")
+        if not isinstance(self.image, RasterImage):
+            raise TypeError("content image must be RasterImage")
         if not isinstance(self.provenance, ContentExtractionProvenance):
             raise TypeError(
                 "provenance must be ContentExtractionProvenance"
             )
-        if not isinstance(self.pixels, np.ndarray):
-            raise TypeError("content pixels must be a numpy array")
-        if self.pixels.dtype != np.uint8:
-            raise TypeError(
-                "content pixels must be uint8, "
-                f"got {self.pixels.dtype}"
-            )
 
         bounds = self.frame.bounds_content
-        channels = self.pixel_format.channel_count
-        expected_shape = (
-            (bounds.height, bounds.width)
-            if channels == 1
-            else (bounds.height, bounds.width, channels)
-        )
-        if self.pixels.shape != expected_shape:
+        if (
+            self.image.width != bounds.width
+            or self.image.height != bounds.height
+        ):
             raise ValueError(
-                "content pixel shape must match content bounds and pixel "
-                f"format: expected {expected_shape}, got {self.pixels.shape}"
+                "content image size must match content bounds: "
+                f"expected {bounds.width}x{bounds.height}, "
+                f"got {self.image.width}x{self.image.height}"
             )
 
-        frozen = np.frombuffer(
-            self.pixels.tobytes(order="C"),
-            dtype=np.uint8,
-        ).reshape(expected_shape)
-        object.__setattr__(self, "pixels", frozen)
         object.__setattr__(
             self,
             "confidence",
             _normalize_confidence(self.confidence),
         )
+
+    @property
+    def pixels(self) -> ImagePixels:
+        return self.image.pixels
+
+    @property
+    def pixel_format(self) -> PixelFormat:
+        return self.image.pixel_format
 
     @property
     def capture_info(self) -> FrameInfo:
@@ -287,15 +277,15 @@ def _crop_content(
             ),
         )
 
-    left = bounds_capture.left - capture_bounds.left
-    top = bounds_capture.top - capture_bounds.top
-    right = bounds_capture.right - capture_bounds.left
-    bottom = bounds_capture.bottom - capture_bounds.top
-
-    if capture.pixel_format.channel_count == 1:
-        pixels = capture.pixels[top:bottom, left:right]
-    else:
-        pixels = capture.pixels[top:bottom, left:right, :]
+    image = capture.image
+    if bounds_capture != capture_bounds:
+        image = crop_image(
+            capture.image,
+            bounds=bounds_capture.translated(
+                dx=-capture_bounds.left,
+                dy=-capture_bounds.top,
+            ),
+        )
 
     return CapturedContent(
         frame=ContentFrame(
@@ -304,7 +294,6 @@ def _crop_content(
                 bounds_capture=bounds_capture,
             ),
         ),
-        pixels=pixels,
-        pixel_format=capture.pixel_format,
+        image=image,
         provenance=provenance,
     )

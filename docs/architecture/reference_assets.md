@@ -85,8 +85,7 @@ game bundle.
 `ReferenceImage` contains:
 
 - stable asset key;
-- immutable `RasterImage` pixels;
-- explicit grayscale, BGR, or BGRA format; and
+- an immutable `RasterImage` whose pixels and format are validated together; and
 - an optional detector-neutral coverage mask.
 
 It does not contain template matching thresholds, suppression policy, matching

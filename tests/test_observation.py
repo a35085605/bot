@@ -16,6 +16,7 @@ from capture import (
     PixelFormat,
 )
 from geometry.rect import Rect
+from imaging import RasterImage
 from observation import ObservationBundle
 from target_runtime import (
     TargetAvailability,
@@ -41,8 +42,10 @@ class ObservationTest(unittest.TestCase):
                 ),
                 capture_backend="test.capture",
             ),
-            pixels=np.zeros((3, 4), dtype=np.uint8),
-            pixel_format=PixelFormat.GRAY8,
+            image=RasterImage(
+                pixels=np.zeros((3, 4), dtype=np.uint8),
+                pixel_format=PixelFormat.GRAY8,
+            ),
             quality=CaptureQuality(usable=True),
         )
 

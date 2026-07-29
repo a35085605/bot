@@ -26,6 +26,7 @@ from content import (
 )
 from geometry.point import Point
 from geometry.rect import Rect
+from imaging import RasterImage
 
 
 class ContentBoundaryTest(unittest.TestCase):
@@ -69,8 +70,10 @@ class ContentBoundaryTest(unittest.TestCase):
 
         return CapturedFrame(
             info=info,
-            pixels=pixels,
-            pixel_format=pixel_format,
+            image=RasterImage(
+                pixels=pixels,
+                pixel_format=pixel_format,
+            ),
             quality=CaptureQuality(usable=usable),
         )
 
@@ -97,6 +100,7 @@ class ContentBoundaryTest(unittest.TestCase):
             ContentExtractionMethod.IDENTITY,
         )
         np.testing.assert_array_equal(result.pixels, capture.pixels)
+        self.assertIs(result.image, capture.image)
         self.assertFalse(result.pixels.flags.writeable)
 
     def test_crop_establishes_content_space_without_resize(self) -> None:
@@ -116,6 +120,7 @@ class ContentBoundaryTest(unittest.TestCase):
             Rect(x=0, y=0, width=4, height=3),
         )
         self.assertEqual(result.pixels.shape, (3, 4))
+        self.assertIsNot(result.image, capture.image)
         np.testing.assert_array_equal(
             result.pixels,
             capture.pixels[1:4, 2:6],
