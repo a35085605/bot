@@ -34,29 +34,25 @@ class SemanticSnapshotBuilder:
         quality: CaptureQuality,
         evidence_set: EvidenceSet,
         content: ContentFrame | None = None,
-        viewport: ContentFrame | None = None,
         frame: FrameInfo | None = None,
     ) -> WorldSnapshot:
-        """Build from exactly one content context.
+        """Build from exactly one clean-content coordinate context.
 
-        New orchestration should pass ``content``. ``viewport`` is a temporary
-        compatibility name for callers using ``CanonicalViewport``. ``frame``
-        remains available only when the raw capture is already clean content.
+        Normal orchestration passes ``content``. ``frame`` is valid only when
+        the raw capture already represents clean content without extraction.
         """
 
         supplied = sum(
             value is not None
-            for value in (content, viewport, frame)
+            for value in (content, frame)
         )
         if supplied != 1:
             raise ValueError(
-                "provide exactly one of content, viewport, or frame"
+                "provide exactly one of content or frame"
             )
 
         if content is not None and not isinstance(content, ContentFrame):
             raise TypeError("content must be ContentFrame or None")
-        if viewport is not None and not isinstance(viewport, ContentFrame):
-            raise TypeError("viewport must be ContentFrame or None")
         if frame is not None and not isinstance(frame, FrameInfo):
             raise TypeError("frame must be FrameInfo or None")
         if not isinstance(quality, CaptureQuality):
@@ -64,8 +60,6 @@ class SemanticSnapshotBuilder:
         if not isinstance(evidence_set, EvidenceSet):
             raise TypeError("evidence_set must be EvidenceSet")
 
-        if content is None:
-            content = viewport
         if content is None:
             assert frame is not None
             content = ContentFrame(
