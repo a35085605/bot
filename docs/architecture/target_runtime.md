@@ -3,19 +3,19 @@
 ## Purpose
 
 The `target_runtime` package models the latest observed operational state of a
-logical automation target. It is separate from both visual Observation and the
-semantic World Model.
+logical automation target. It is separate from visual Capture, Observation
+coordination, and the semantic World Model.
 
 ```text
-Observation / World Model                 Target Runtime
-what the target displays                  whether it can be controlled
-             │                                      │
-             └──────────────────┬───────────────────┘
-                                ▼
-                             Decision
-                                │
-                                ▼
-                             Execution
+Capture / World Model                  Target Runtime
+what pixels and semantics exist        whether it can be controlled
+              │                                      │
+              └──────────────────┬───────────────────┘
+                                 ▼
+                              Decision
+                                 │
+                                 ▼
+                              Execution
 ```
 
 The package is read-only. It defines immutable runtime snapshots and a
@@ -31,10 +31,10 @@ its own status, capabilities, blockers, and platform-specific observed detail.
 
 Common channel states are:
 
-- `READY`: execution may use the channel and no blocker is present
-- `BLOCKED`: the channel exists but a known precondition is not satisfied
-- `UNAVAILABLE`: the channel cannot currently be used
-- `UNKNOWN`: readiness has not been established
+- `READY`: execution may use the channel and no blocker is present;
+- `BLOCKED`: the channel exists but a known precondition is not satisfied;
+- `UNAVAILABLE`: the channel cannot currently be used; and
+- `UNKNOWN`: readiness has not been established.
 
 Blockers are stable string values such as `window.not_foreground`,
 `window.minimized`, `adb.device_missing`, or `adb.unauthorized`. They are data,
@@ -42,10 +42,18 @@ not exceptions, because an unavailable target is a normal runtime condition.
 
 ## Window state
 
-`WindowChannelState` records the target window identity, the currently
-foreground window identity, focus relationship, and optional minimized,
-visibility, and responsiveness observations. Reading this state has no side
-effect. Setting or restoring focus remains an Execution responsibility.
+`WindowChannelState` records current operational window facts:
+
+- target and foreground window identity;
+- process ID and title;
+- client and outer screen bounds;
+- focus relationship; and
+- optional minimized, visibility, and responsiveness observations.
+
+These values do not belong to `CapturedFrame`. Capture only retains surface
+identity and capture-time geometry required to interpret one pixel frame.
+Reading runtime state has no side effect. Setting or restoring focus remains an
+Execution responsibility.
 
 ## ADB state
 
@@ -53,15 +61,23 @@ effect. Setting or restoring focus remains an Execution responsibility.
 device serial and state, and whether a transport is ready. It does not start the
 server, authorize a device, reconnect a transport, or invoke `adb shell input`.
 
+ADB host and port are adapter configuration or endpoint identity. They should not
+be copied into a visual frame merely because a capture adapter used ADB to obtain
+pixels.
+
 ## Snapshot freshness
 
-A runtime snapshot is only the result of a prior inspection. Focus and transport
-state can change immediately after inspection, so Execution must revalidate its
-preconditions immediately before producing an external side effect. The runtime
-snapshot can guide Decision and scheduling, but it is not a lock or guarantee.
+A runtime snapshot is only the result of a prior inspection. Focus, geometry,
+and transport state can change immediately after inspection, so Execution must
+revalidate its preconditions immediately before producing an external side
+effect. The runtime snapshot can guide Decision and scheduling, but it is not a
+lock or guarantee.
 
 ## Adapter boundary
 
 Future adapters may implement `TargetRuntimeInspector` using Win32, X11,
 Wayland, macOS accessibility APIs, ADB, emulator APIs, or test doubles. This
 module intentionally introduces no concrete adapter or execution controller.
+
+See [Observation boundaries](observation_boundaries.md) for the relationship
+between Capture, Target Runtime, Temporal observations, and orchestration.
