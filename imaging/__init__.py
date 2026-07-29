@@ -5,7 +5,11 @@ from imaging.models import (
     RasterImage,
     RasterImageView,
 )
-from imaging.operations import crop_image, crop_image_view
+from imaging.operations import (
+    crop_image,
+    crop_image_view,
+    materialize_image,
+)
 from imaging.ports import ImageResizer
 
 __all__ = [
@@ -17,4 +21,5 @@ __all__ = [
     "RasterImageView",
     "crop_image",
     "crop_image_view",
+    "materialize_image",
 ]
