@@ -13,13 +13,20 @@ from target_runtime.domain import (
     TargetRuntimeSnapshot,
     WindowChannelState,
 )
-from target_runtime.ports import TargetRuntimeInspector
+from target_runtime.ports import (
+    AdbChannelInspector,
+    ControlChannelInspector,
+    TargetRuntimeInspector,
+    WindowChannelInspector,
+)
 
 __all__ = [
+    "AdbChannelInspector",
     "AdbChannelState",
     "AdbDeviceStatus",
     "ControlCapability",
     "ControlChannelId",
+    "ControlChannelInspector",
     "ControlChannelKind",
     "ControlChannelSnapshot",
     "ControlChannelStatus",
@@ -29,5 +36,6 @@ __all__ = [
     "TargetId",
     "TargetRuntimeInspector",
     "TargetRuntimeSnapshot",
+    "WindowChannelInspector",
     "WindowChannelState",
 ]
