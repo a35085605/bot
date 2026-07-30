@@ -18,7 +18,17 @@ from target_runtime.domain.readiness import (
 
 @dataclass(frozen=True, slots=True)
 class TargetRuntimeSnapshot:
-    """Latest observed operational state for one logical target."""
+    """Latest observed operational state for one logical target.
+
+    ``availability`` is a target-level observation. ``channels`` describe the
+    independently usable Window, ADB, or future control paths associated with
+    that target. A target can therefore be available while every channel is
+    blocked or unavailable.
+
+    The snapshot is read-only, time-sensitive evidence for orchestration and
+    Decision. It is not a lock and does not guarantee that the same conditions
+    still hold when Execution performs an external side effect.
+    """
 
     target_id: TargetId
     observed_at: datetime
@@ -72,6 +82,8 @@ class TargetRuntimeSnapshot:
         self,
         channel_id: ControlChannelId,
     ) -> ControlChannelSnapshot | None:
+        """Return the observed channel with ``channel_id``, when present."""
+
         if not isinstance(channel_id, ControlChannelId):
             raise TypeError("channel_id must be ControlChannelId")
         return next(
@@ -85,6 +97,8 @@ class TargetRuntimeSnapshot:
 
     @property
     def ready_channels(self) -> tuple[ControlChannelSnapshot, ...]:
+        """Return channels observed as ready at ``observed_at``."""
+
         return tuple(
             channel
             for channel in self.channels
@@ -92,6 +106,11 @@ class TargetRuntimeSnapshot:
         )
 
     def supports(self, capability: ControlCapability) -> bool:
+        """Whether a currently ready channel reports ``capability``.
+
+        Execution must still revalidate channel readiness before using it.
+        """
+
         if not isinstance(capability, ControlCapability):
             raise TypeError("capability must be ControlCapability")
         return any(
