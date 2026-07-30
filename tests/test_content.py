@@ -17,11 +17,13 @@ from capture import (
 )
 from content import (
     CapturedContent,
-    ConfiguredContentCropExtractor,
-    ContentExtractionMethod,
+    ConfiguredContentLocator,
     ContentFailureReason,
+    ContentLocationFailureReason,
+    ContentRegionUnavailable,
     ContentUnavailable,
-    IdentityContentExtractor,
+    FullFrameContentLocator,
+    LocatedContentRegion,
     extract_content,
 )
 from geometry.point import Point
@@ -77,12 +79,12 @@ class ContentBoundaryTest(unittest.TestCase):
             quality=CaptureQuality(usable=usable),
         )
 
-    def test_identity_extraction_preserves_capture_dimensions(self) -> None:
+    def test_full_frame_location_preserves_capture_dimensions(self) -> None:
         capture = self._capture()
 
         result = extract_content(
             capture,
-            extractor=IdentityContentExtractor(),
+            locator=FullFrameContentLocator(),
         )
 
         self.assertIsInstance(result, CapturedContent)
@@ -96,19 +98,22 @@ class ContentBoundaryTest(unittest.TestCase):
             capture.info.root_bounds,
         )
         self.assertEqual(
-            result.provenance.method,
-            ContentExtractionMethod.IDENTITY,
+            result.provenance.locator_id,
+            "content.full_frame",
         )
         np.testing.assert_array_equal(result.pixels, capture.pixels)
         self.assertIs(result.image, capture.image)
+        self.assertTrue(result.image.is_materialized)
         self.assertFalse(result.pixels.flags.writeable)
 
-    def test_crop_establishes_content_space_without_resize(self) -> None:
+    def test_configured_region_establishes_content_space_without_resize(
+        self,
+    ) -> None:
         capture = self._capture()
 
         result = extract_content(
             capture,
-            extractor=ConfiguredContentCropExtractor(
+            locator=ConfiguredContentLocator(
                 bounds_capture=Rect(x=2, y=1, width=4, height=3),
             ),
         )
@@ -121,6 +126,7 @@ class ContentBoundaryTest(unittest.TestCase):
         )
         self.assertEqual(result.pixels.shape, (3, 4))
         self.assertIsNot(result.image, capture.image)
+        self.assertFalse(result.image.is_materialized)
         np.testing.assert_array_equal(
             result.pixels,
             capture.pixels[1:4, 2:6],
@@ -130,10 +136,10 @@ class ContentBoundaryTest(unittest.TestCase):
             Point(x=3, y=2),
         )
 
-    def test_crop_preserves_multichannel_shape(self) -> None:
+    def test_configured_region_preserves_multichannel_shape(self) -> None:
         result = extract_content(
             self._capture(pixel_format=PixelFormat.BGR24),
-            extractor=ConfiguredContentCropExtractor(
+            locator=ConfiguredContentLocator(
                 bounds_capture=Rect(x=1, y=2, width=5, height=3),
             ),
         )
@@ -142,10 +148,36 @@ class ContentBoundaryTest(unittest.TestCase):
         assert isinstance(result, CapturedContent)
         self.assertEqual(result.pixels.shape, (3, 5, 3))
 
-    def test_unusable_capture_does_not_produce_content(self) -> None:
+    def test_location_metadata_flows_to_captured_content(self) -> None:
+        class Locator:
+            def locate(self, capture: CapturedFrame) -> LocatedContentRegion:
+                return LocatedContentRegion(
+                    bounds_capture=Rect(x=1, y=1, width=5, height=4),
+                    locator_id="content.test_locator",
+                    confidence=0.75,
+                )
+
+        result = extract_content(
+            self._capture(),
+            locator=Locator(),
+        )
+
+        self.assertIsInstance(result, CapturedContent)
+        assert isinstance(result, CapturedContent)
+        self.assertEqual(
+            result.provenance.locator_id,
+            "content.test_locator",
+        )
+        self.assertEqual(result.confidence, 0.75)
+
+    def test_unusable_capture_does_not_invoke_locator(self) -> None:
+        class Locator:
+            def locate(self, capture: CapturedFrame) -> object:
+                raise AssertionError("locator must not be invoked")
+
         result = extract_content(
             self._capture(usable=False),
-            extractor=IdentityContentExtractor(),
+            locator=Locator(),
         )
 
         self.assertEqual(
@@ -156,10 +188,10 @@ class ContentBoundaryTest(unittest.TestCase):
             ),
         )
 
-    def test_outside_crop_returns_unavailable(self) -> None:
+    def test_outside_region_returns_unavailable(self) -> None:
         result = extract_content(
             self._capture(),
-            extractor=ConfiguredContentCropExtractor(
+            locator=ConfiguredContentLocator(
                 bounds_capture=Rect(x=7, y=5, width=2, height=2),
             ),
         )
@@ -170,12 +202,53 @@ class ContentBoundaryTest(unittest.TestCase):
             result.reason,
             ContentFailureReason.BOUNDS_OUTSIDE_CAPTURE,
         )
+        self.assertIsNone(result.location_reason)
 
-    def test_boundary_rejects_object_without_extract(self) -> None:
+    def test_locator_failure_is_preserved(self) -> None:
+        class Locator:
+            def locate(
+                self,
+                capture: CapturedFrame,
+            ) -> ContentRegionUnavailable:
+                return ContentRegionUnavailable(
+                    reason=ContentLocationFailureReason.AMBIGUOUS,
+                    detail="two equally likely content regions",
+                )
+
+        result = extract_content(
+            self._capture(),
+            locator=Locator(),
+        )
+
+        self.assertEqual(
+            result,
+            ContentUnavailable(
+                frame_id=FrameId(7),
+                reason=ContentFailureReason.CONTENT_NOT_LOCATED,
+                detail="two equally likely content regions",
+                location_reason=ContentLocationFailureReason.AMBIGUOUS,
+            ),
+        )
+
+    def test_boundary_rejects_object_without_locate(self) -> None:
         with self.assertRaises(TypeError):
             extract_content(
                 self._capture(),
-                extractor=object(),  # type: ignore[arg-type]
+                locator=object(),  # type: ignore[arg-type]
+            )
+
+    def test_boundary_rejects_invalid_locator_result(self) -> None:
+        class Locator:
+            def locate(self, capture: CapturedFrame) -> object:
+                return object()
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "content locator must return",
+        ):
+            extract_content(
+                self._capture(),
+                locator=Locator(),  # type: ignore[arg-type]
             )
 
 
