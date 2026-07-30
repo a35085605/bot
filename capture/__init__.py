@@ -15,11 +15,12 @@ from capture.domain.models import (
     FramePixels,
     PixelFormat,
 )
-from capture.ports import FrameCaptureBackend, FrameSource
+from capture.ports import CapturedFrameSource, FrameCaptureBackend
 
 __all__ = [
     "AcquiredFrame",
     "CapturedFrame",
+    "CapturedFrameSource",
     "CaptureQuality",
     "CaptureStreamId",
     "CaptureSurface",
@@ -29,7 +30,6 @@ __all__ = [
     "FrameId",
     "FrameInfo",
     "FramePixels",
-    "FrameSource",
     "MaterializingFrameSource",
     "PixelFormat",
     "materialize_capture",

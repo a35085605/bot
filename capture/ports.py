@@ -8,12 +8,12 @@ from capture.domain.models import AcquiredFrame, CapturedFrame
 class FrameCaptureBackend(Protocol):
     """Acquire one backend frame before ownership normalization."""
 
-    def capture(self) -> AcquiredFrame:
+    def acquire(self) -> AcquiredFrame:
         ...
 
 
-class FrameSource(Protocol):
-    """Capture one materialized pixel frame for external consumers."""
+class CapturedFrameSource(Protocol):
+    """Capture one materialized pixel frame for application consumers."""
 
     def capture(self) -> CapturedFrame:
         ...

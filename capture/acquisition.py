@@ -27,11 +27,11 @@ class MaterializingFrameSource:
     backend: FrameCaptureBackend
 
     def __post_init__(self) -> None:
-        if not hasattr(self.backend, "capture"):
-            raise TypeError("backend must provide capture()")
+        if not hasattr(self.backend, "acquire"):
+            raise TypeError("backend must provide acquire()")
 
     def capture(self) -> CapturedFrame:
-        acquired = self.backend.capture()
+        acquired = self.backend.acquire()
         if not isinstance(acquired, AcquiredFrame):
             raise TypeError(
                 "frame capture backend must return AcquiredFrame"
