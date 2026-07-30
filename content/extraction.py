@@ -48,32 +48,89 @@ def _normalize_confidence(value: object) -> float:
     return normalized
 
 
-class ContentExtractionMethod(str, Enum):
-    IDENTITY = "identity"
-    CONFIGURED_CROP = "configured_crop"
+class ContentLocationFailureReason(str, Enum):
+    NOT_FOUND = "not_found"
+    AMBIGUOUS = "ambiguous"
+    UNSUPPORTED_LAYOUT = "unsupported_layout"
 
 
 class ContentFailureReason(str, Enum):
     FRAME_UNUSABLE = "frame_unusable"
+    CONTENT_NOT_LOCATED = "content_not_located"
     BOUNDS_OUTSIDE_CAPTURE = "bounds_outside_capture"
 
 
 @dataclass(frozen=True, slots=True)
 class ContentExtractionProvenance:
-    extractor_id: str
-    method: ContentExtractionMethod
+    locator_id: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.method, ContentExtractionMethod):
-            raise TypeError("method must be ContentExtractionMethod")
         object.__setattr__(
             self,
-            "extractor_id",
+            "locator_id",
             _normalize_non_empty_text(
-                self.extractor_id,
-                field_name="content extractor id",
+                self.locator_id,
+                field_name="content locator id",
             ),
         )
+
+
+@dataclass(frozen=True, slots=True)
+class LocatedContentRegion:
+    """Capture-space content region selected by one locator."""
+
+    bounds_capture: Rect
+    locator_id: str
+    confidence: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.bounds_capture, Rect):
+            raise TypeError("bounds_capture must be Rect")
+        object.__setattr__(
+            self,
+            "locator_id",
+            _normalize_non_empty_text(
+                self.locator_id,
+                field_name="content locator id",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "confidence",
+            _normalize_confidence(self.confidence),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRegionUnavailable:
+    reason: ContentLocationFailureReason
+    detail: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reason, ContentLocationFailureReason):
+            raise TypeError(
+                "reason must be ContentLocationFailureReason"
+            )
+        object.__setattr__(
+            self,
+            "detail",
+            _normalize_optional_text(
+                self.detail,
+                field_name="content location failure detail",
+            ),
+        )
+
+
+ContentRegionResult: TypeAlias = (
+    LocatedContentRegion | ContentRegionUnavailable
+)
+
+
+class ContentRegionLocator(Protocol):
+    """Locate clean content inside the current raw capture."""
+
+    def locate(self, capture: CapturedFrame) -> ContentRegionResult:
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,12 +209,30 @@ class ContentUnavailable:
     frame_id: FrameId
     reason: ContentFailureReason
     detail: str | None = None
+    location_reason: ContentLocationFailureReason | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.frame_id, FrameId):
             raise TypeError("frame_id must be FrameId")
         if not isinstance(self.reason, ContentFailureReason):
             raise TypeError("reason must be ContentFailureReason")
+        if self.location_reason is not None and not isinstance(
+            self.location_reason,
+            ContentLocationFailureReason,
+        ):
+            raise TypeError(
+                "location_reason must be "
+                "ContentLocationFailureReason or None"
+            )
+        if self.reason is ContentFailureReason.CONTENT_NOT_LOCATED:
+            if self.location_reason is None:
+                raise ValueError(
+                    "content_not_located requires location_reason"
+                )
+        elif self.location_reason is not None:
+            raise ValueError(
+                "location_reason is only valid for content_not_located"
+            )
         object.__setattr__(
             self,
             "detail",
@@ -171,94 +246,17 @@ class ContentUnavailable:
 ContentExtractionResult: TypeAlias = CapturedContent | ContentUnavailable
 
 
-class ContentExtractor(Protocol):
-    """Boundary that derives clean content from the current raw capture."""
-
-    def extract(self, capture: CapturedFrame) -> ContentExtractionResult:
-        ...
-
-
 def extract_content(
     capture: CapturedFrame,
     *,
-    extractor: ContentExtractor,
+    locator: ContentRegionLocator,
 ) -> ContentExtractionResult:
+    """Locate and derive clean content from one captured frame."""
+
     if not isinstance(capture, CapturedFrame):
         raise TypeError("capture must be CapturedFrame")
-    if not hasattr(extractor, "extract"):
-        raise TypeError("extractor must provide extract()")
-    result = extractor.extract(capture)
-    if not isinstance(result, (CapturedContent, ContentUnavailable)):
-        raise TypeError(
-            "content extractor must return CapturedContent or "
-            "ContentUnavailable"
-        )
-    return result
-
-
-@dataclass(frozen=True, slots=True)
-class IdentityContentExtractor:
-    extractor_id: str = "content.identity"
-
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "extractor_id",
-            _normalize_non_empty_text(
-                self.extractor_id,
-                field_name="content extractor id",
-            ),
-        )
-
-    def extract(self, capture: CapturedFrame) -> ContentExtractionResult:
-        return _crop_content(
-            capture=capture,
-            bounds_capture=capture.info.root_bounds,
-            provenance=ContentExtractionProvenance(
-                extractor_id=self.extractor_id,
-                method=ContentExtractionMethod.IDENTITY,
-            ),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class ConfiguredContentCropExtractor:
-    bounds_capture: Rect
-    extractor_id: str = "content.configured_crop"
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.bounds_capture, Rect):
-            raise TypeError("bounds_capture must be Rect")
-        object.__setattr__(
-            self,
-            "extractor_id",
-            _normalize_non_empty_text(
-                self.extractor_id,
-                field_name="content extractor id",
-            ),
-        )
-
-    def extract(self, capture: CapturedFrame) -> ContentExtractionResult:
-        return _crop_content(
-            capture=capture,
-            bounds_capture=self.bounds_capture,
-            provenance=ContentExtractionProvenance(
-                extractor_id=self.extractor_id,
-                method=ContentExtractionMethod.CONFIGURED_CROP,
-            ),
-        )
-
-
-def _crop_content(
-    *,
-    capture: CapturedFrame,
-    bounds_capture: Rect,
-    provenance: ContentExtractionProvenance,
-) -> ContentExtractionResult:
-    if not isinstance(capture, CapturedFrame):
-        raise TypeError("capture must be CapturedFrame")
-    if not isinstance(bounds_capture, Rect):
-        raise TypeError("bounds_capture must be Rect")
+    if not hasattr(locator, "locate"):
+        raise TypeError("locator must provide locate()")
 
     if not capture.quality.usable:
         return ContentUnavailable(
@@ -266,6 +264,21 @@ def _crop_content(
             reason=ContentFailureReason.FRAME_UNUSABLE,
         )
 
+    located = locator.locate(capture)
+    if isinstance(located, ContentRegionUnavailable):
+        return ContentUnavailable(
+            frame_id=capture.info.frame_id,
+            reason=ContentFailureReason.CONTENT_NOT_LOCATED,
+            detail=located.detail,
+            location_reason=located.reason,
+        )
+    if not isinstance(located, LocatedContentRegion):
+        raise TypeError(
+            "content locator must return LocatedContentRegion or "
+            "ContentRegionUnavailable"
+        )
+
+    bounds_capture = located.bounds_capture
     capture_bounds = capture.info.root_bounds
     if not capture_bounds.contains_rect(bounds_capture):
         return ContentUnavailable(
@@ -295,5 +308,57 @@ def _crop_content(
             ),
         ),
         image=image,
-        provenance=provenance,
+        provenance=ContentExtractionProvenance(
+            locator_id=located.locator_id,
+        ),
+        confidence=located.confidence,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class FullFrameContentLocator:
+    locator_id: str = "content.full_frame"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "locator_id",
+            _normalize_non_empty_text(
+                self.locator_id,
+                field_name="content locator id",
+            ),
+        )
+
+    def locate(self, capture: CapturedFrame) -> ContentRegionResult:
+        if not isinstance(capture, CapturedFrame):
+            raise TypeError("capture must be CapturedFrame")
+        return LocatedContentRegion(
+            bounds_capture=capture.info.root_bounds,
+            locator_id=self.locator_id,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ConfiguredContentLocator:
+    bounds_capture: Rect
+    locator_id: str = "content.configured"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.bounds_capture, Rect):
+            raise TypeError("bounds_capture must be Rect")
+        object.__setattr__(
+            self,
+            "locator_id",
+            _normalize_non_empty_text(
+                self.locator_id,
+                field_name="content locator id",
+            ),
+        )
+
+    def locate(self, capture: CapturedFrame) -> ContentRegionResult:
+        if not isinstance(capture, CapturedFrame):
+            raise TypeError("capture must be CapturedFrame")
+        return LocatedContentRegion(
+            bounds_capture=self.bounds_capture,
+            locator_id=self.locator_id,
+        )
