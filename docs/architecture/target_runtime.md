@@ -118,6 +118,35 @@ ADB host and port are adapter configuration or endpoint identity. They should no
 be copied into a visual frame merely because a capture adapter used ADB to obtain
 pixels.
 
+## Per-channel inspection ports
+
+`WindowChannelState` and `AdbChannelState` are immutable domain values, not
+platform adapters. The operation that acquires those values is represented by
+the generic `ControlChannelInspector[ChannelState]` port and its specialized
+protocols:
+
+```text
+WindowChannelInspector
+        │
+        └──► ControlChannelSnapshot[WindowChannelState]
+
+AdbChannelInspector
+        │
+        └──► ControlChannelSnapshot[AdbChannelState]
+```
+
+A Win32, X11, Wayland, macOS, ADB CLI, emulator API, or test-double adapter may
+implement one of these ports. The generic snapshot remains responsible for
+validating that the channel kind agrees with the concrete details type.
+
+An aggregate `TargetRuntimeInspector` may compose several per-channel inspectors
+into one `TargetRuntimeSnapshot`. It must still establish target-level
+availability independently: no ready channels, or no discovered channels, does
+not prove that the logical target is missing.
+
+Per-channel inspection remains read-only. Preparing a blocked channel, restoring
+focus, reconnecting a transport, or sending input belongs to Execution.
+
 ## Snapshot freshness
 
 A runtime snapshot is a timestamped result of a prior inspection. Focus,
@@ -130,10 +159,12 @@ before producing an external side effect.
 
 ## Adapter boundary
 
-Adapters may implement `TargetRuntimeInspector` using Win32, X11, Wayland,
-macOS accessibility APIs, process inspection, ADB, emulator APIs, or test
-doubles. An adapter may combine several platform queries to produce one immutable
-snapshot, but it must preserve the read-only contract.
+Adapters may implement `TargetRuntimeInspector`, `WindowChannelInspector`, or
+`AdbChannelInspector` using Win32, X11, Wayland, macOS accessibility APIs,
+process inspection, ADB, emulator APIs, or test doubles. An aggregate adapter may
+combine several platform queries or per-channel inspectors to produce one
+immutable runtime snapshot, but every inspection path must preserve the read-only
+contract.
 
 See [Observation boundaries](observation_boundaries.md) for the relationship
 between Capture, Target Runtime, Temporal observations, coordination, Decision,
