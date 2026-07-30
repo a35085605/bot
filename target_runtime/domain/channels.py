@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from numbers import Integral
-from typing import TypeAlias
+from typing import Generic, TypeAlias, TypeVar
 
 from geometry.rect import Rect
 from target_runtime.domain.identities import (
@@ -209,16 +209,21 @@ class AdbChannelState:
 
 
 ControlChannelDetails: TypeAlias = WindowChannelState | AdbChannelState
+ControlChannelStateT_co = TypeVar(
+    "ControlChannelStateT_co",
+    bound=ControlChannelDetails,
+    covariant=True,
+)
 
 
 @dataclass(frozen=True, slots=True)
-class ControlChannelSnapshot:
+class ControlChannelSnapshot(Generic[ControlChannelStateT_co]):
     """Immutable readiness snapshot for one target control channel."""
 
     channel_id: ControlChannelId
     kind: ControlChannelKind
     status: ControlChannelStatus
-    details: ControlChannelDetails
+    details: ControlChannelStateT_co
     capabilities: frozenset[ControlCapability] = field(
         default_factory=frozenset
     )
