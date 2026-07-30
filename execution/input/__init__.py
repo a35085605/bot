@@ -1,9 +1,4 @@
-"""Deprecated compatibility facade for contracts now owned by ``execution``."""
-
-from control.domain import (
-    ControlOperationResult,
-    ControlOperationStatus,
-    DevicePoint,
+from execution.input.domain import (
     Key,
     KeyChord,
     KeyDown,
@@ -14,13 +9,10 @@ from control.domain import (
     PointerDrag,
     PointerMove,
     PointerScroll,
-    ScreenPoint,
     ScrollDelta,
     TextEntry,
-    WindowActivation,
-    WindowRestore,
 )
-from control.ports import (
+from execution.input.ports import (
     BackNavigator,
     KeyChordController,
     KeyPresser,
@@ -30,15 +22,10 @@ from control.ports import (
     PointerMover,
     PointerScroller,
     TextController,
-    WindowActivator,
-    WindowRestorer,
 )
 
 __all__ = [
     "BackNavigator",
-    "ControlOperationResult",
-    "ControlOperationStatus",
-    "DevicePoint",
     "Key",
     "KeyChord",
     "KeyChordController",
@@ -56,12 +43,7 @@ __all__ = [
     "PointerMover",
     "PointerScroll",
     "PointerScroller",
-    "ScreenPoint",
     "ScrollDelta",
     "TextController",
     "TextEntry",
-    "WindowActivation",
-    "WindowActivator",
-    "WindowRestore",
-    "WindowRestorer",
 ]
