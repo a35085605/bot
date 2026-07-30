@@ -1,41 +1,4 @@
-from target_runtime.domain import (
-    AdbChannelState,
-    AdbDeviceStatus,
-    ControlCapability,
-    ControlChannelId,
-    ControlChannelKind,
-    ControlChannelSnapshot,
-    ControlChannelStatus,
-    FocusStatus,
-    ReadinessBlocker,
-    TargetAvailability,
-    TargetId,
-    TargetRuntimeSnapshot,
-    WindowChannelState,
-)
-from target_runtime.ports import (
-    AdbChannelInspector,
-    ControlChannelInspector,
-    TargetRuntimeInspector,
-    WindowChannelInspector,
-)
+"""Deprecated compatibility facade for ``observation.target_runtime``."""
 
-__all__ = [
-    "AdbChannelInspector",
-    "AdbChannelState",
-    "AdbDeviceStatus",
-    "ControlCapability",
-    "ControlChannelId",
-    "ControlChannelInspector",
-    "ControlChannelKind",
-    "ControlChannelSnapshot",
-    "ControlChannelStatus",
-    "FocusStatus",
-    "ReadinessBlocker",
-    "TargetAvailability",
-    "TargetId",
-    "TargetRuntimeInspector",
-    "TargetRuntimeSnapshot",
-    "WindowChannelInspector",
-    "WindowChannelState",
-]
+from observation.target_runtime import *
+from observation.target_runtime import __all__
