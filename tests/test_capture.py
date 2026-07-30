@@ -222,7 +222,7 @@ class CaptureTest(unittest.TestCase):
         )
 
         class Backend:
-            def capture(self) -> AcquiredFrame:
+            def acquire(self) -> AcquiredFrame:
                 return acquired
 
         frame = MaterializingFrameSource(backend=Backend()).capture()
@@ -235,7 +235,7 @@ class CaptureTest(unittest.TestCase):
         self,
     ) -> None:
         class Backend:
-            def capture(self) -> object:
+            def acquire(self) -> object:
                 return object()
 
         with self.assertRaisesRegex(
