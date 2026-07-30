@@ -7,28 +7,54 @@ raw capture. A viewport may instead mean an application camera, scroll viewport,
 or visible panel, so it is not used for this capture boundary.
 
 ```text
-CapturedFrame                       CapturedContent
-raw capture-space                   content-space
-      │                                   │
-      │ ContentExtractor                  │ Perception
-      ▼                                   ▼
-CapturedContent                  Evidence / WorldSnapshot
-                                          │
-                                          │ Decision
-                                          ▼
-                                  ContentPointTarget
-                                          │
-                                          │ ExecutionTargetResolver
-                                          ▼
-                              ScreenPoint / DevicePoint
+CapturedFrame
+raw capture-space
+      │
+      │ ContentRegionLocator
+      ▼
+LocatedContentRegion
+      │
+      │ extract_content()
+      ▼
+CapturedContent
+content-space
+      │
+      │ Perception
+      ▼
+Evidence / WorldSnapshot
+      │
+      │ Decision
+      ▼
+ContentPointTarget
+      │
+      │ ExecutionTargetResolver
+      ▼
+ScreenPoint / DevicePoint
 ```
 
 ## Boundary one: capture to content
 
-`ContentExtractor` derives clean content from the current `CapturedFrame`.
-Extraction is tied to that exact capture. An implementation may inspect current
-capture dimensions or window metadata on every frame to remove title bars,
-window chrome, desktop pixels, or letterbox bars.
+`ContentRegionLocator` answers one variable question for the current
+`CapturedFrame`:
+
+> Which capture-space rectangle represents clean application content?
+
+A locator may inspect current capture dimensions, window metadata, configured
+geometry, or pixels on every frame to identify the region that excludes title
+bars, window chrome, desktop pixels, or letterbox bars. It returns either
+`LocatedContentRegion` or `ContentRegionUnavailable`.
+
+`extract_content()` is the stable facade around that strategy. It:
+
+- rejects unusable captures before invoking the locator;
+- validates the located rectangle against capture bounds;
+- converts capture-space bounds to image-local bounds;
+- creates a zero-copy crop with `crop_image()` when needed;
+- establishes `ContentPlacementInCapture` and `ContentFrame`; and
+- constructs validated `CapturedContent`.
+
+This keeps region-selection policy behind the protocol while centralizing crop,
+coordinate, provenance, confidence, and failure handling.
 
 A successful extraction returns `CapturedContent`, which contains:
 
@@ -36,11 +62,15 @@ A successful extraction returns `CapturedContent`, which contains:
 - a `ContentFrame`;
 - `ContentPlacementInCapture`;
 - pixel format; and
-- extraction provenance and confidence.
+- locator provenance and confidence.
 
 `ContentPlacementInCapture` describes the real raw-capture rectangle represented
 by content-space. Content-space starts at `(0, 0)` and preserves the selected
 rectangle's pixel dimensions.
+
+Content crops remain logical zero-copy `RasterImage` views backed by the owned
+`CapturedFrame` raster. Unlike the capture acquisition boundary, content
+extraction does not require another materialization step.
 
 This boundary does not:
 
