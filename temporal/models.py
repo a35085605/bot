@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from enum import Enum
 import math
 from numbers import Real
 
@@ -15,6 +16,31 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
     if not normalized:
         raise ValueError(f"{field_name} cannot be empty")
     return normalized
+
+
+class MisfirePolicy(Enum):
+    """How a scheduler handles occurrences that became due while unavailable."""
+
+    SKIP = "skip"
+    FIRE_ONCE = "fire_once"
+    CATCH_UP_ALL = "catch_up_all"
+
+
+@dataclass(frozen=True, slots=True)
+class ScheduleToken:
+    """Opaque identity returned for one scheduler registration."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "value",
+            _normalize_non_empty_text(
+                self.value,
+                field_name="schedule token",
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
