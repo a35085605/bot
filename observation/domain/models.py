@@ -21,7 +21,12 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ObservationCoherence:
-    """Timing relationship between independently acquired observations."""
+    """Acquisition skew relative to one cycle's Temporal observation.
+
+    Coherence describes when independently acquired snapshots were sampled. It
+    does not claim that the snapshots are atomic, mutually consistent, fresh
+    enough for a use case, or safe to use for an external side effect.
+    """
 
     maximum_skew: timedelta
     capture_skew: timedelta | None = None
@@ -41,10 +46,16 @@ class ObservationCoherence:
 
 @dataclass(frozen=True, slots=True)
 class ObservationBundle:
-    """Snapshots collected during one orchestration cycle.
+    """Snapshots acquired for one orchestration cycle.
 
-    The members are not assumed to be atomic. Each snapshot retains its own
-    timestamp and ``coherence`` makes acquisition skew explicit.
+    Observation is broader than visual capture. ``capture`` and ``runtime`` are
+    independent, optional observation families; either may be omitted when the
+    current policy does not need it. ``temporal`` is the required timing anchor
+    in the current model.
+
+    Members retain their own timestamps and are not assumed to be atomic. This
+    bundle is a transport value for one cycle, not durable agent state, semantic
+    perception output, a decision, or an execution guarantee.
     """
 
     cycle_id: str
@@ -76,6 +87,12 @@ class ObservationBundle:
 
     @property
     def coherence(self) -> ObservationCoherence:
+        """Return snapshot skew relative to ``temporal.observed_at``.
+
+        Consumers remain responsible for applying use-case-specific age and
+        skew limits and for revalidating mutable execution preconditions.
+        """
+
         reference = self.temporal.observed_at
         capture_skew = (
             None
