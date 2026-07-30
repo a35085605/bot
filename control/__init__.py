@@ -1,3 +1,5 @@
+"""Deprecated compatibility facade for contracts now owned by ``execution``."""
+
 from control.domain import (
     ControlOperationResult,
     ControlOperationStatus,
