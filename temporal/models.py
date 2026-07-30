@@ -19,7 +19,16 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class TemporalSnapshot:
-    """One observation of wall-clock and monotonic time."""
+    """One explicit observation of wall-clock and monotonic time.
+
+    ``observed_at`` supports calendar, timezone, and schedule policy.
+    ``monotonic_seconds`` supports elapsed-duration, timeout, age, and freshness
+    calculations that must not depend on wall-clock adjustments.
+
+    A timestamp stored on another snapshot says when that observation occurred.
+    This value instead makes time itself an input to an orchestration cycle and,
+    in the current Observation model, provides the coherence reference.
+    """
 
     observed_at: datetime
     monotonic_seconds: float
@@ -54,12 +63,18 @@ class TemporalSnapshot:
 
     @property
     def local_date(self) -> date:
+        """Return the calendar date in ``observed_at``'s timezone."""
+
         return self.observed_at.date()
 
     @property
     def local_time(self) -> time:
+        """Return the local time, retaining timezone information."""
+
         return self.observed_at.timetz()
 
     @property
     def timezone_name(self) -> str | None:
+        """Return the timezone name supplied by ``observed_at``."""
+
         return self.observed_at.tzname()
