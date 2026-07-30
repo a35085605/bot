@@ -1,3 +1,4 @@
-from temporal.adapters.system import SystemClock
+"""Deprecated compatibility facade for ``observation.temporal.adapters``."""
 
-__all__ = ["SystemClock"]
+from observation.temporal.adapters import *
+from observation.temporal.adapters import __all__
