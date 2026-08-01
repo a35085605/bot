@@ -12,6 +12,7 @@ from imaging import RasterImage, crop_image
 from observation.capture import (
     AcquiredFrame,
     CapturedFrame,
+    CaptureBackendProfile,
     CaptureQuality,
     CaptureStreamId,
     CaptureSurface,
@@ -220,27 +221,39 @@ class CaptureTest(unittest.TestCase):
             image=cropped,
             quality=CaptureQuality(usable=True),
         )
+        profile = CaptureBackendProfile(backend_id="dxgi")
 
         class Backend:
+            @property
+            def profile(self) -> CaptureBackendProfile:
+                return profile
+
             def acquire(self) -> AcquiredFrame:
                 return acquired
 
-        frame = MaterializingFrameSource(backend=Backend()).capture()
+        result = MaterializingFrameSource(backend=Backend()).capture()
 
-        self.assertIsInstance(frame, CapturedFrame)
-        self.assertTrue(frame.image.is_materialized)
-        self.assertFalse(np.shares_memory(frame.pixels, root.pixels))
+        self.assertIsInstance(result, CapturedFrame)
+        assert isinstance(result, CapturedFrame)
+        self.assertTrue(result.image.is_materialized)
+        self.assertFalse(np.shares_memory(result.pixels, root.pixels))
 
     def test_materializing_frame_source_rejects_invalid_backend_result(
         self,
     ) -> None:
+        profile = CaptureBackendProfile(backend_id="test.invalid")
+
         class Backend:
+            @property
+            def profile(self) -> CaptureBackendProfile:
+                return profile
+
             def acquire(self) -> object:
                 return object()
 
         with self.assertRaisesRegex(
             TypeError,
-            "must return AcquiredFrame",
+            "must return AcquiredFrame or CaptureUnavailable",
         ):
             MaterializingFrameSource(backend=Backend()).capture()
 

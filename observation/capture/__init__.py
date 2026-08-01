@@ -1,5 +1,4 @@
 from observation.capture.acquisition import (
-    MaterializingConditionalFrameSource,
     MaterializingFrameSource,
     materialize_acquired_frame,
 )
@@ -26,8 +25,6 @@ from observation.capture.ports import (
     AcquiredFrameResult,
     CapturedFrameResult,
     CapturedFrameSource,
-    ConditionalCapturedFrameSource,
-    ConditionalFrameCaptureBackend,
     FrameCaptureBackend,
 )
 
@@ -44,15 +41,12 @@ __all__ = [
     "CaptureSurface",
     "CaptureUnavailable",
     "CaptureUnavailableReason",
-    "ConditionalCapturedFrameSource",
-    "ConditionalFrameCaptureBackend",
     "CoordinateSpace",
     "CoordinateTransform",
     "FrameCaptureBackend",
     "FrameId",
     "FrameInfo",
     "FramePixels",
-    "MaterializingConditionalFrameSource",
     "MaterializingFrameSource",
     "PixelFormat",
     "materialize_acquired_frame",

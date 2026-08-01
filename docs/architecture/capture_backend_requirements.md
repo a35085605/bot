@@ -1,4 +1,4 @@
-# Conditional capture backend requirements
+# Capture backend requirements
 
 ## Purpose
 
@@ -15,7 +15,7 @@ CaptureBackendProfile
     static technical requirements
               │
               ▼
-ConditionalFrameCaptureBackend.try_acquire()
+FrameCaptureBackend.acquire()
               │
       ┌───────┴────────┐
       ▼                ▼
@@ -25,16 +25,15 @@ AcquiredFrame    CaptureUnavailable
                       └── diagnostic detail
 ```
 
-This contract does not add orchestration. It only lets an adapter declare what
-its capture mechanism needs and return an expected unavailable result when those
-conditions are not satisfied.
+`FrameCaptureBackend` is the single backend contract. Capture availability is
+part of its result rather than a separate conditional capability hierarchy.
 
 ## Read-only boundary
 
-A conditional capture backend may inspect platform facts required by its own
-capture mechanism. It must not intentionally change the target environment.
+A capture backend may inspect platform facts required by its own capture
+mechanism. It must not intentionally change the target environment.
 
-In particular, `try_acquire()` must not:
+In particular, `acquire()` must not:
 
 - restore or activate a window;
 - raise a window or change its topmost state;
@@ -43,9 +42,8 @@ In particular, `try_acquire()` must not:
 - launch or terminate the target; or
 - send pointer, keyboard, text, or navigation input.
 
-Those are Execution effects. A future coordinator or orchestration policy may
-choose to perform them and retry capture, but that policy is outside this
-boundary.
+Those are Execution effects. A coordinator or orchestration policy may choose to
+perform them and retry capture, but that policy is outside this boundary.
 
 ## Backend profile
 
@@ -63,6 +61,11 @@ Requirements describe the capture mechanism, not the current target state. A
 backend that requires foreground capture declares
 `CaptureRequirement.WINDOW_FOREGROUND` even when the target is already
 foreground.
+
+A backend with no special target preconditions still provides a profile with an
+empty requirements set. The profile does not imply that acquisition is
+guaranteed: the source may still disappear, permissions may be denied, or a
+transient platform failure may occur.
 
 The profile does not import or embed `TargetRuntimeSnapshot`. Capture remains
 independent from the Target Runtime domain, and different platform adapters may
@@ -98,22 +101,45 @@ the same window or ADB target.
 
 ## Materialization boundary
 
-`MaterializingConditionalFrameSource` is the application-facing adapter around a
-`ConditionalFrameCaptureBackend`.
+`MaterializingFrameSource` is the application-facing adapter around a
+`FrameCaptureBackend`.
 
-- successful `AcquiredFrame` values cross the existing pixel ownership boundary
-  and become materialized `CapturedFrame` values;
+- successful `AcquiredFrame` values cross the pixel ownership boundary and
+  become materialized `CapturedFrame` values;
 - `CaptureUnavailable` values are preserved without mutation;
 - unavailable backend identity must match the declared profile; and
 - unmet requirements must be a subset of the profile requirements.
 
-The existing `FrameCaptureBackend.acquire()` and `MaterializingFrameSource`
-contracts remain unchanged for backends whose caller already guarantees that
-acquisition is available.
+`CapturedFrameSource.capture()` exposes the same result shape after ownership
+normalization: `CapturedFrame | CaptureUnavailable`.
 
-## Future orchestration
+## No guaranteed capture contract
 
-A future coordinator may combine:
+Capture cannot guarantee successful acquisition from inside its own boundary.
+Target availability, window state, permissions, and transport readiness are
+mutable external facts and may change between any prior inspection and the
+actual acquisition attempt.
+
+For that reason there is no separate guaranteed backend or source port. A
+coordinator may require a frame for a particular workflow, but that is policy:
+it consumes `CaptureUnavailable`, decides whether to prepare the environment,
+wait, retry, select another backend, or stop, and then performs another capture
+attempt.
+
+```text
+CapturedFrameSource.capture()
+             │
+             ▼
+CapturedFrame | CaptureUnavailable
+             │
+             ▼
+Coordinator policy
+  use frame / prepare / retry / wait / stop
+```
+
+## Coordination
+
+A coordinator may combine:
 
 ```text
 CaptureBackendProfile
@@ -123,5 +149,5 @@ CaptureBackendProfile
 ```
 
 It may then activate or restore a target, inspect Runtime again, and retry
-capture. This change deliberately does not define that coordinator, preparation
-policy, retry loop, timeout, or state restoration behavior.
+capture. Capture itself does not define that coordinator, preparation policy,
+retry loop, timeout, backend fallback, or state restoration behavior.

@@ -7,7 +7,7 @@ from execution.domain import (
     ContentPointTarget,
     ExecutionTargetResolution,
 )
-from target_runtime import ControlChannelId, TargetRuntimeSnapshot
+from observation.target_runtime import ControlChannelId, TargetRuntimeSnapshot
 
 
 NativePointT = TypeVar("NativePointT", covariant=True)
