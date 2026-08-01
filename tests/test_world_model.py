@@ -7,9 +7,9 @@ from geometry.rect import Rect
 from observation import (
     CaptureQuality,
     CaptureStreamId,
-    CaptureSurface,
     CoordinateSpace,
     CoordinateTransform,
+    DesktopWindowSurface,
     FrameId,
     FrameInfo,
 )
@@ -65,7 +65,7 @@ class WorldModelTest(unittest.TestCase):
                     height=1080,
                 ),
                 source_id="game-window",
-                surface=CaptureSurface(
+                surface=DesktopWindowSurface(
                     surface_id="hwnd:42",
                     client_bounds_screen=Rect(
                         x=100,

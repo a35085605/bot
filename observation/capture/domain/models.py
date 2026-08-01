@@ -249,7 +249,7 @@ class CaptureCoordinateMapping:
 
 
 @dataclass(frozen=True, slots=True)
-class CaptureSurface:
+class DesktopWindowSurface:
     """Capture-time desktop-window identity and explanatory geometry.
 
     This value describes the window surface that produced one historical frame.
@@ -280,7 +280,7 @@ class CaptureSurface:
             "surface_id",
             _normalize_non_empty_text(
                 self.surface_id,
-                field_name="capture surface id",
+                field_name="desktop window surface id",
             ),
         )
 
@@ -334,7 +334,7 @@ class DeviceDisplaySurface:
 
 
 CaptureSourceSnapshot: TypeAlias = (
-    CaptureSurface | DesktopDisplaySurface | DeviceDisplaySurface
+    DesktopWindowSurface | DesktopDisplaySurface | DeviceDisplaySurface
 )
 
 
@@ -404,7 +404,11 @@ class FrameInfo:
             raise TypeError("root_bounds must be Rect")
         if self.surface is not None and not isinstance(
             self.surface,
-            (CaptureSurface, DesktopDisplaySurface, DeviceDisplaySurface),
+            (
+                DesktopWindowSurface,
+                DesktopDisplaySurface,
+                DeviceDisplaySurface,
+            ),
         ):
             raise TypeError("surface must be a capture source snapshot or None")
         if self.root_to_screen is not None:
