@@ -39,10 +39,10 @@ ScreenPoint / DevicePoint
 
 > Which capture-space rectangle represents clean application content?
 
-A locator may inspect current capture dimensions, window metadata, configured
-geometry, or pixels on every frame to identify the region that excludes title
-bars, window chrome, desktop pixels, or letterbox bars. It returns either
-`LocatedContentRegion` or `ContentRegionUnavailable`.
+A locator may inspect current capture dimensions, configured geometry, pixels,
+or capture-time source provenance to identify the region that excludes title
+bars, window chrome, desktop pixels, emulator controls, system UI, or letterbox
+bars. It returns either `LocatedContentRegion` or `ContentRegionUnavailable`.
 
 `extract_content()` is the stable facade around that strategy. It:
 
@@ -72,17 +72,36 @@ Content crops remain logical zero-copy `RasterImage` views backed by the owned
 `CapturedFrame` raster. Unlike the capture acquisition boundary, content
 extraction does not require another materialization step.
 
+`ContentFrame` composes the crop offset into every capture-time native coordinate
+mapping. A desktop capture may therefore retain content-to-screen provenance,
+while an ADB capture may retain content-to-device-display provenance. These are
+historical mappings that explain the captured pixels; they are not current
+runtime geometry or execution guarantees.
+
 This boundary does not:
 
 - resize or normalize pixels;
 - select detector ROIs;
 - run detectors;
 - assign semantic meaning;
+- establish current target availability;
 - choose a control channel; or
-- resolve screen or device coordinates.
+- claim that a native mapping is still valid for input.
 
 Detector crop, resize, padding, and normalization remain in `detector_input` and
 `imaging`.
+
+## Visual target association
+
+A content region is not automatically identical to a logical target. This is
+especially important when a capture contains multiple windows, an emulator
+window contains both host controls and a device viewport, or one logical target
+has desktop and ADB channels.
+
+The separate `visual_target_binding` boundary associates `CapturedContent` with
+a `TargetRuntimeSnapshot`. It records why the historical visual region was
+associated with a logical target without making Content depend on Target Runtime
+or claiming current channel readiness.
 
 ## Boundary two: content to execution
 
@@ -96,14 +115,19 @@ Decision and planning produce targets in content-space, such as
 - a fresh `TargetRuntimeSnapshot`; and
 - the selected control channel.
 
-It returns either a native `ResolvedExecutionTarget` or
+When the capture source is broader than one logical target, orchestration also
+establishes a `VisualTargetBinding` and the resolver validates that association
+against the fresh runtime state.
+
+The resolver returns either a native `ResolvedExecutionTarget` or
 `ExecutionTargetUnavailable`.
 
 A resolver must validate observation identity, content bounds, channel
-readiness, and current geometry immediately before a side effect. Capture-time
-geometry is provenance, not a lock or execution guarantee. If the window,
-device, orientation, display geometry, or source identity changed incompatibly,
-the resolver should fail and allow orchestration to capture and perceive again.
+readiness, binding compatibility, and current geometry immediately before a side
+effect. Capture-time geometry is provenance, not a lock or execution guarantee.
+If the window, device, orientation, display geometry, or source identity changed
+incompatibly, the resolver should fail and allow orchestration to capture and
+perceive again.
 
 Typical implementations are:
 
@@ -117,7 +141,7 @@ AdbExecutionTargetResolver
 
 ## World model bridge
 
-`ContentFrame.frame` supplies the current world model with content-root bounds
-and a derived content-root-to-screen transform. This bridge preserves the
-existing world snapshot contract; it is not a substitute for execution-time
-runtime inspection and target resolution.
+`ContentFrame.frame` supplies the current world model with content-root bounds and
+derived capture-time native mappings. This bridge preserves the existing world
+snapshot contract; it is not a substitute for target binding, execution-time
+runtime inspection, or target resolution.
