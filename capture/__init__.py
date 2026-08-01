@@ -1,36 +1,4 @@
-from capture.acquisition import (
-    MaterializingFrameSource,
-    materialize_capture,
-)
-from capture.domain.models import (
-    AcquiredFrame,
-    CapturedFrame,
-    CaptureQuality,
-    CaptureStreamId,
-    CaptureSurface,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    FramePixels,
-    PixelFormat,
-)
-from capture.ports import CapturedFrameSource, FrameCaptureBackend
+"""Deprecated compatibility facade for ``observation.capture``."""
 
-__all__ = [
-    "AcquiredFrame",
-    "CapturedFrame",
-    "CapturedFrameSource",
-    "CaptureQuality",
-    "CaptureStreamId",
-    "CaptureSurface",
-    "CoordinateSpace",
-    "CoordinateTransform",
-    "FrameCaptureBackend",
-    "FrameId",
-    "FrameInfo",
-    "FramePixels",
-    "MaterializingFrameSource",
-    "PixelFormat",
-    "materialize_capture",
-]
+from observation.capture import *
+from observation.capture import __all__

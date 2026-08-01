@@ -1,27 +1,4 @@
-from capture.domain.models import (
-    AcquiredFrame,
-    CapturedFrame,
-    CaptureQuality,
-    CaptureStreamId,
-    CaptureSurface,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    FramePixels,
-    PixelFormat,
-)
+"""Deprecated compatibility facade for ``observation.capture.domain``."""
 
-__all__ = [
-    "AcquiredFrame",
-    "CapturedFrame",
-    "CaptureQuality",
-    "CaptureStreamId",
-    "CaptureSurface",
-    "CoordinateSpace",
-    "CoordinateTransform",
-    "FrameId",
-    "FrameInfo",
-    "FramePixels",
-    "PixelFormat",
-]
+from observation.capture.domain import *
+from observation.capture.domain import __all__

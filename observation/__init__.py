@@ -1,44 +1,26 @@
-"""Public contracts for coordinating independently acquired observations.
+"""Public contracts for independently acquired observation families.
 
-Observation is an orchestration boundary, not an alias for visual capture.
-`ObservationBundle` can combine Temporal, Capture, and Target Runtime snapshots
-for one cycle while preserving each snapshot's own timestamp and domain model.
-
-Capture value types are re-exported here for existing observation consumers. The
-source packages remain separate: Capture owns pixel facts, Target Runtime owns
-operational target and channel facts, and Temporal owns clock observations.
+Capture, Target Runtime, and Temporal live under the ``observation`` namespace
+and remain separate read-only boundaries. ``ObservationBundle`` coordinates the
+snapshots requested for one orchestration cycle while preserving each family's
+own timestamp and domain model.
 """
 
-from capture import (
-    CapturedFrame,
-    CapturedFrameSource,
-    CaptureQuality,
-    CaptureStreamId,
-    CaptureSurface,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    FramePixels,
-    PixelFormat,
-)
+from observation.capture import *
+from observation.capture import __all__ as _capture_all
 from observation.domain.models import (
     ObservationBundle,
     ObservationCoherence,
 )
+from observation.target_runtime import *
+from observation.target_runtime import __all__ as _target_runtime_all
+from observation.temporal import *
+from observation.temporal import __all__ as _temporal_all
 
 __all__ = [
-    "CapturedFrame",
-    "CapturedFrameSource",
-    "CaptureQuality",
-    "CaptureStreamId",
-    "CaptureSurface",
-    "CoordinateSpace",
-    "CoordinateTransform",
-    "FrameId",
-    "FrameInfo",
-    "FramePixels",
+    *_capture_all,
+    *_target_runtime_all,
+    *_temporal_all,
     "ObservationBundle",
     "ObservationCoherence",
-    "PixelFormat",
 ]

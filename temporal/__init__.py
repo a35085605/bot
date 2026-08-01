@@ -1,13 +1,4 @@
-from temporal.models import MisfirePolicy, ScheduleToken, TemporalSnapshot
-from temporal.observation import observe_time
-from temporal.ports import CalendarSchedule, Clock, TemporalScheduler
+"""Deprecated compatibility facade for ``observation.temporal``."""
 
-__all__ = [
-    "CalendarSchedule",
-    "Clock",
-    "MisfirePolicy",
-    "ScheduleToken",
-    "TemporalScheduler",
-    "TemporalSnapshot",
-    "observe_time",
-]
+from observation.temporal import *
+from observation.temporal import __all__

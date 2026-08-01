@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from capture import CapturedFrame
-from target_runtime import TargetRuntimeSnapshot
-from temporal import TemporalSnapshot
+from observation.capture import CapturedFrame
+from observation.target_runtime import TargetRuntimeSnapshot
+from observation.temporal import TemporalSnapshot
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
