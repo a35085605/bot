@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from temporal import observe_time
+from observation.temporal import observe_time
 
 
 class FakeClock:
