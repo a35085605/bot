@@ -14,9 +14,9 @@ from geometry.rect import Rect
 from observation.capture import (
     CaptureQuality,
     CaptureStreamId,
-    CaptureSurface,
     CoordinateSpace,
     CoordinateTransform,
+    DesktopWindowSurface,
     FrameId,
     FrameInfo,
 )
@@ -51,7 +51,7 @@ class SemanticPerceptionTest(unittest.TestCase):
             ),
             root_bounds=Rect(x=0, y=0, width=1920, height=1080),
             source_id="game-window",
-            surface=CaptureSurface(
+            surface=DesktopWindowSurface(
                 surface_id="hwnd:42",
                 client_bounds_screen=Rect(
                     x=100,
