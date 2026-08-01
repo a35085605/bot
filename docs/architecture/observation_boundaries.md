@@ -105,27 +105,36 @@ The `capture` package answers:
 > are those pixels usable?
 
 `FrameCaptureBackend` is the platform-facing acquisition port. Its `acquire()`
-operation returns `AcquiredFrame`, which may still reference a logical read-only
-raster slice. `CapturedFrameSource` is the application-facing port that promises
-an owned `CapturedFrame`. `MaterializingFrameSource` adapts the former to the
-latter by calling `materialize_image()` and constructing `CapturedFrame`.
+operation returns either `AcquiredFrame` or `CaptureUnavailable`. A successful
+`AcquiredFrame` may still reference a logical read-only raster slice.
+`CapturedFrameSource` is the application-facing port with the same availability
+semantics after pixel ownership normalization. `MaterializingFrameSource` adapts
+the backend by materializing successful frames and preserving unavailable
+results.
 
 ```text
 FrameCaptureBackend.acquire()
              │
-             ▼
-       AcquiredFrame
-             │
-             │ materialize_image()
-             ▼
- MaterializingFrameSource
+       ┌─────┴──────────────┐
+       ▼                    ▼
+AcquiredFrame       CaptureUnavailable
+       │                    │
+       │ materialize_image  │ preserve
+       ▼                    │
+ MaterializingFrameSource ◄─┘
              │ implements
              ▼
 CapturedFrameSource.capture()
              │
-             ▼
-       CapturedFrame
+       ┌─────┴──────────────┐
+       ▼                    ▼
+CapturedFrame       CaptureUnavailable
 ```
+
+Capture does not define a guaranteed-success port. External conditions can
+change between prior inspection and acquisition, so a coordinator owns any
+policy that requires a frame, prepares the environment, retries, selects another
+backend, waits, or stops.
 
 `CapturedFrame` exposes immutable pixels, `FrameInfo`, pixel format, and
 `CaptureQuality`. `FrameInfo.surface` is deliberately limited to capture-time
