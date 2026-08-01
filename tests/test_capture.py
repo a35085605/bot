@@ -15,9 +15,9 @@ from observation.capture import (
     CaptureBackendProfile,
     CaptureQuality,
     CaptureStreamId,
-    CaptureSurface,
     CoordinateSpace,
     CoordinateTransform,
+    DesktopWindowSurface,
     FrameId,
     FrameInfo,
     MaterializingFrameSource,
@@ -41,7 +41,7 @@ class CaptureTest(unittest.TestCase):
             ),
             root_bounds=Rect(x=0, y=0, width=100, height=50),
             source_id=" game-window ",
-            surface=CaptureSurface(
+            surface=DesktopWindowSurface(
                 surface_id=" hwnd:42 ",
                 client_bounds_screen=Rect(
                     x=200,
@@ -115,8 +115,8 @@ class CaptureTest(unittest.TestCase):
             Rect(x=-1920, y=0, width=1920, height=1080),
         )
 
-    def test_capture_surface_validates_geometry_only(self) -> None:
-        surface = CaptureSurface(
+    def test_desktop_window_surface_validates_geometry_only(self) -> None:
+        surface = DesktopWindowSurface(
             surface_id="hwnd:42",
             client_bounds_screen=Rect(x=10, y=10, width=80, height=80),
             outer_bounds_screen=Rect(x=0, y=0, width=100, height=100),
@@ -127,9 +127,9 @@ class CaptureTest(unittest.TestCase):
         self.assertFalse(hasattr(surface, "is_foreground"))
         self.assertFalse(hasattr(surface, "is_minimized"))
 
-    def test_capture_surface_rejects_inconsistent_bounds(self) -> None:
+    def test_desktop_window_surface_rejects_inconsistent_bounds(self) -> None:
         with self.assertRaises(ValueError):
-            CaptureSurface(
+            DesktopWindowSurface(
                 surface_id="hwnd:42",
                 client_bounds_screen=Rect(
                     x=0,
