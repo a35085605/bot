@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import unittest
 
-from temporal import (
+from observation.temporal import (
     CalendarSchedule,
     MisfirePolicy,
     ScheduleToken,
