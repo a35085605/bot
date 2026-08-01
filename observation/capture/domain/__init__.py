@@ -11,13 +11,23 @@ from observation.capture.domain.models import (
     FramePixels,
     PixelFormat,
 )
+from observation.capture.domain.requirements import (
+    CaptureBackendProfile,
+    CaptureRequirement,
+    CaptureUnavailable,
+    CaptureUnavailableReason,
+)
 
 __all__ = [
     "AcquiredFrame",
     "CapturedFrame",
+    "CaptureBackendProfile",
     "CaptureQuality",
+    "CaptureRequirement",
     "CaptureStreamId",
     "CaptureSurface",
+    "CaptureUnavailable",
+    "CaptureUnavailableReason",
     "CoordinateSpace",
     "CoordinateTransform",
     "FrameId",

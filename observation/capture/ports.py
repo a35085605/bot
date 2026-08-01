@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 from observation.capture.domain.models import AcquiredFrame, CapturedFrame
+from observation.capture.domain.requirements import (
+    CaptureBackendProfile,
+    CaptureUnavailable,
+)
+
+
+CaptureAcquisitionAttempt: TypeAlias = AcquiredFrame | CaptureUnavailable
+CapturedFrameAttempt: TypeAlias = CapturedFrame | CaptureUnavailable
 
 
 class FrameCaptureBackend(Protocol):
@@ -28,4 +36,34 @@ class CapturedFrameSource(Protocol):
 
     def capture(self) -> CapturedFrame:
         """Return one materialized frame for application consumers."""
+        ...
+
+
+class ConditionalFrameCaptureBackend(Protocol):
+    """Capture backend that declares requirements and may be unavailable.
+
+    Implementations may inspect platform facts needed by their capture
+    mechanism, but must not restore, activate, raise, or otherwise mutate the
+    target environment. Expected runtime blockers are returned as
+    ``CaptureUnavailable`` values.
+    """
+
+    @property
+    def profile(self) -> CaptureBackendProfile:
+        ...
+
+    def try_acquire(self) -> CaptureAcquisitionAttempt:
+        """Acquire one frame or describe why acquisition is unavailable."""
+        ...
+
+
+class ConditionalCapturedFrameSource(Protocol):
+    """Application-facing conditional source of materialized frames."""
+
+    @property
+    def profile(self) -> CaptureBackendProfile:
+        ...
+
+    def try_capture(self) -> CapturedFrameAttempt:
+        """Return a materialized frame or a typed unavailable result."""
         ...
