@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from capture import (
+from content import ContentFrame, ContentPlacementInCapture
+from evidence import EvidenceSet
+from geometry.rect import Rect
+from observation.capture import (
     CaptureQuality,
     CaptureStreamId,
     CoordinateSpace,
@@ -11,9 +14,6 @@ from capture import (
     FrameId,
     FrameInfo,
 )
-from content import ContentFrame, ContentPlacementInCapture
-from evidence import EvidenceSet
-from geometry.rect import Rect
 from semantic_perception import (
     SemanticPerceptionConfig,
     SemanticSnapshotBuilder,
