@@ -5,16 +5,6 @@ import unittest
 
 import numpy as np
 
-from capture import (
-    CapturedFrame,
-    CaptureQuality,
-    CaptureStreamId,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-    PixelFormat,
-)
 from content import (
     CapturedContent,
     ConfiguredContentLocator,
@@ -29,6 +19,16 @@ from content import (
 from geometry.point import Point
 from geometry.rect import Rect
 from imaging import RasterImage
+from observation.capture import (
+    CapturedFrame,
+    CaptureQuality,
+    CaptureStreamId,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+    PixelFormat,
+)
 
 
 class ContentBoundaryTest(unittest.TestCase):
