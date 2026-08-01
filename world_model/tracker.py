@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from numbers import Integral
 
-from capture import FrameId
+from observation.capture import FrameId
 from world_model.identities import (
     ControlKey,
     IndicatorKey,
