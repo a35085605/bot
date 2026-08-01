@@ -8,6 +8,7 @@ from execution.domain import (
     ExecutionTargetResolution,
 )
 from observation.target_runtime import ControlChannelId, TargetRuntimeSnapshot
+from visual_target_binding import VisualTargetBinding
 
 
 NativePointT = TypeVar("NativePointT", covariant=True)
@@ -19,9 +20,9 @@ class ExecutionTargetResolver(Protocol[NativePointT]):
     Implementations must revalidate the selected runtime channel and current
     geometry immediately before producing the native point. Capture-time native
     mappings are historical provenance, not an execution guarantee. When the
-    capture source is broader than one logical target, orchestration should first
-    establish a ``VisualTargetBinding`` and the resolver must validate that
-    association against the fresh runtime snapshot.
+    capture source is broader than one logical target, orchestration establishes
+    a ``VisualTargetBinding`` and the resolver validates that association against
+    the fresh runtime snapshot.
     """
 
     def resolve_point(
@@ -31,5 +32,6 @@ class ExecutionTargetResolver(Protocol[NativePointT]):
         content: ContentFrame,
         runtime: TargetRuntimeSnapshot,
         channel_id: ControlChannelId,
+        binding: VisualTargetBinding | None = None,
     ) -> ExecutionTargetResolution[NativePointT]:
         ...
