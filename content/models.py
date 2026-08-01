@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 
 from geometry.point import Point
 from geometry.rect import Rect
-from observation.capture import CoordinateSpace, CoordinateTransform, FrameInfo
+from observation.capture import (
+    CaptureCoordinateMapping,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameInfo,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,15 +65,40 @@ class ContentPlacementInCapture:
         return rect.translated(dx=-source.left, dy=-source.top)
 
 
+def _translate_mapping_to_content(
+    mapping: CaptureCoordinateMapping,
+    *,
+    bounds_capture: Rect,
+) -> CaptureCoordinateMapping:
+    transform = mapping.transform
+    return CaptureCoordinateMapping(
+        transform=CoordinateTransform(
+            source=CoordinateSpace.ROOT,
+            target=transform.target,
+            scale_x=transform.scale_x,
+            scale_y=transform.scale_y,
+            offset_x=(
+                bounds_capture.left * transform.scale_x
+                + transform.offset_x
+            ),
+            offset_y=(
+                bounds_capture.top * transform.scale_y
+                + transform.offset_y
+            ),
+        ),
+        space_id=mapping.space_id,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ContentFrame:
     """Clean-content coordinate context derived from exactly one capture.
 
     ``capture`` retains capture identity and capture-time provenance.
-    ``placement`` establishes content-space. The derived ``frame`` supplies the
-    current world model with content-root bounds and a content-to-screen
-    transform. Execution must still revalidate current runtime geometry rather
-    than treating the capture-time transform as an execution guarantee.
+    ``placement`` establishes content-space. The derived ``frame`` composes the
+    crop offset into every capture-time native mapping. Those mappings explain
+    the historical pixels only; Execution must still revalidate current runtime
+    geometry before producing a native input target.
     """
 
     capture: FrameInfo
@@ -88,20 +118,21 @@ class ContentFrame:
             )
 
         source = self.placement.bounds_capture
-        capture_to_screen = self.capture.root_to_screen
-        content_to_screen = CoordinateTransform(
-            source=CoordinateSpace.ROOT,
-            target=CoordinateSpace.SCREEN,
-            scale_x=capture_to_screen.scale_x,
-            scale_y=capture_to_screen.scale_y,
-            offset_x=(
-                source.left * capture_to_screen.scale_x
-                + capture_to_screen.offset_x
-            ),
-            offset_y=(
-                source.top * capture_to_screen.scale_y
-                + capture_to_screen.offset_y
-            ),
+        screen_mapping = self.capture.mapping_to(CoordinateSpace.SCREEN)
+        content_to_screen = (
+            None
+            if screen_mapping is None
+            else _translate_mapping_to_content(
+                screen_mapping,
+                bounds_capture=source,
+            ).transform
+        )
+        additional_mappings = tuple(
+            _translate_mapping_to_content(
+                mapping,
+                bounds_capture=source,
+            )
+            for mapping in self.capture.additional_mappings
         )
 
         object.__setattr__(
@@ -116,6 +147,7 @@ class ContentFrame:
                 surface=self.capture.surface,
                 root_to_screen=content_to_screen,
                 capture_backend_id=self.capture.capture_backend_id,
+                additional_mappings=additional_mappings,
             ),
         )
 

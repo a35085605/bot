@@ -8,6 +8,7 @@ from execution.domain import (
     ExecutionTargetResolution,
 )
 from observation.target_runtime import ControlChannelId, TargetRuntimeSnapshot
+from visual_target_binding import VisualTargetBinding
 
 
 NativePointT = TypeVar("NativePointT", covariant=True)
@@ -17,8 +18,11 @@ class ExecutionTargetResolver(Protocol[NativePointT]):
     """Resolve content-space intent into a native execution target.
 
     Implementations must revalidate the selected runtime channel and current
-    geometry immediately before producing the native point. A capture-time
-    content-to-screen transform is provenance, not an execution guarantee.
+    geometry immediately before producing the native point. Capture-time native
+    mappings are historical provenance, not an execution guarantee. When the
+    capture source is broader than one logical target, orchestration establishes
+    a ``VisualTargetBinding`` and the resolver validates that association against
+    the fresh runtime snapshot.
     """
 
     def resolve_point(
@@ -28,5 +32,6 @@ class ExecutionTargetResolver(Protocol[NativePointT]):
         content: ContentFrame,
         runtime: TargetRuntimeSnapshot,
         channel_id: ControlChannelId,
+        binding: VisualTargetBinding | None = None,
     ) -> ExecutionTargetResolution[NativePointT]:
         ...
