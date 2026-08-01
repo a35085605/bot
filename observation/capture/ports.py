@@ -9,8 +9,8 @@ from observation.capture.domain.requirements import (
 )
 
 
-CaptureAcquisitionAttempt: TypeAlias = AcquiredFrame | CaptureUnavailable
-CapturedFrameAttempt: TypeAlias = CapturedFrame | CaptureUnavailable
+AcquiredFrameResult: TypeAlias = AcquiredFrame | CaptureUnavailable
+CapturedFrameResult: TypeAlias = CapturedFrame | CaptureUnavailable
 
 
 class FrameCaptureBackend(Protocol):
@@ -52,7 +52,7 @@ class ConditionalFrameCaptureBackend(Protocol):
     def profile(self) -> CaptureBackendProfile:
         ...
 
-    def try_acquire(self) -> CaptureAcquisitionAttempt:
+    def try_acquire(self) -> AcquiredFrameResult:
         """Acquire one frame or describe why acquisition is unavailable."""
         ...
 
@@ -64,6 +64,6 @@ class ConditionalCapturedFrameSource(Protocol):
     def profile(self) -> CaptureBackendProfile:
         ...
 
-    def try_capture(self) -> CapturedFrameAttempt:
+    def try_capture(self) -> CapturedFrameResult:
         """Return a materialized frame or a typed unavailable result."""
         ...

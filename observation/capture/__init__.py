@@ -1,7 +1,7 @@
 from observation.capture.acquisition import (
     MaterializingConditionalFrameSource,
     MaterializingFrameSource,
-    materialize_capture,
+    materialize_acquired_frame,
 )
 from observation.capture.domain.models import (
     AcquiredFrame,
@@ -23,8 +23,8 @@ from observation.capture.domain.requirements import (
     CaptureUnavailableReason,
 )
 from observation.capture.ports import (
-    CaptureAcquisitionAttempt,
-    CapturedFrameAttempt,
+    AcquiredFrameResult,
+    CapturedFrameResult,
     CapturedFrameSource,
     ConditionalCapturedFrameSource,
     ConditionalFrameCaptureBackend,
@@ -33,9 +33,9 @@ from observation.capture.ports import (
 
 __all__ = [
     "AcquiredFrame",
-    "CaptureAcquisitionAttempt",
+    "AcquiredFrameResult",
     "CapturedFrame",
-    "CapturedFrameAttempt",
+    "CapturedFrameResult",
     "CapturedFrameSource",
     "CaptureBackendProfile",
     "CaptureQuality",
@@ -55,5 +55,5 @@ __all__ = [
     "MaterializingConditionalFrameSource",
     "MaterializingFrameSource",
     "PixelFormat",
-    "materialize_capture",
+    "materialize_acquired_frame",
 ]

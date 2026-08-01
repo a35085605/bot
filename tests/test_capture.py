@@ -21,7 +21,7 @@ from observation.capture import (
     FrameInfo,
     MaterializingFrameSource,
     PixelFormat,
-    materialize_capture,
+    materialize_acquired_frame,
 )
 
 
@@ -57,7 +57,7 @@ class CaptureTest(unittest.TestCase):
                 offset_x=200,
                 offset_y=300,
             ),
-            capture_backend=" dxgi ",
+            capture_backend_id=" dxgi ",
         )
 
     def test_frame_contract_normalizes_identity_and_surface(self) -> None:
@@ -68,7 +68,7 @@ class CaptureTest(unittest.TestCase):
         self.assertIsNotNone(info.surface)
         assert info.surface is not None
         self.assertEqual(info.surface.surface_id, "hwnd:42")
-        self.assertEqual(info.capture_backend, "dxgi")
+        self.assertEqual(info.capture_backend_id, "dxgi")
         self.assertEqual(
             info.capture_bounds_screen,
             Rect(x=200, y=300, width=200, height=100),
@@ -105,7 +105,7 @@ class CaptureTest(unittest.TestCase):
                 target=CoordinateSpace.SCREEN,
                 offset_x=-1920,
             ),
-            capture_backend="test.desktop",
+            capture_backend_id="test.desktop",
         )
 
         self.assertIsNone(info.surface)
@@ -184,7 +184,7 @@ class CaptureTest(unittest.TestCase):
                 quality=CaptureQuality(usable=True),
             )
 
-    def test_materialize_capture_crosses_ownership_boundary(self) -> None:
+    def test_materialize_acquired_frame_crosses_ownership_boundary(self) -> None:
         root = RasterImage(
             pixels=np.arange(52 * 102, dtype=np.uint8).reshape(52, 102),
             pixel_format=PixelFormat.GRAY8,
@@ -199,7 +199,7 @@ class CaptureTest(unittest.TestCase):
             quality=CaptureQuality(usable=True),
         )
 
-        frame = materialize_capture(acquired)
+        frame = materialize_acquired_frame(acquired)
 
         self.assertTrue(frame.image.is_materialized)
         self.assertTrue(frame.image.is_contiguous)

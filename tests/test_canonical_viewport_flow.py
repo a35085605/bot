@@ -42,7 +42,7 @@ class ContentFlowTest(unittest.TestCase):
                 offset_x=100,
                 offset_y=200,
             ),
-            capture_backend="test.capture",
+            capture_backend_id="test.capture",
         )
 
     def _content(self) -> ContentFrame:

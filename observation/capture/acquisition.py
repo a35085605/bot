@@ -9,13 +9,13 @@ from observation.capture.domain.requirements import (
     CaptureUnavailable,
 )
 from observation.capture.ports import (
-    CapturedFrameAttempt,
+    CapturedFrameResult,
     ConditionalFrameCaptureBackend,
     FrameCaptureBackend,
 )
 
 
-def materialize_capture(frame: AcquiredFrame) -> CapturedFrame:
+def materialize_acquired_frame(frame: AcquiredFrame) -> CapturedFrame:
     """Cross the capture boundary with independent contiguous pixels."""
 
     if not isinstance(frame, AcquiredFrame):
@@ -44,7 +44,7 @@ class MaterializingFrameSource:
             raise TypeError(
                 "frame capture backend must return AcquiredFrame"
             )
-        return materialize_capture(acquired)
+        return materialize_acquired_frame(acquired)
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +65,7 @@ class MaterializingConditionalFrameSource:
     def profile(self) -> CaptureBackendProfile:
         return self.backend.profile
 
-    def try_capture(self) -> CapturedFrameAttempt:
+    def try_capture(self) -> CapturedFrameResult:
         attempted = self.backend.try_acquire()
         if isinstance(attempted, CaptureUnavailable):
             if attempted.backend_id != self.profile.backend_id:
@@ -86,4 +86,4 @@ class MaterializingConditionalFrameSource:
                 "conditional frame capture backend must return AcquiredFrame "
                 "or CaptureUnavailable"
             )
-        return materialize_capture(attempted)
+        return materialize_acquired_frame(attempted)

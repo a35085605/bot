@@ -37,7 +37,7 @@ class CaptureRequirementsTest(unittest.TestCase):
                 source=CoordinateSpace.ROOT,
                 target=CoordinateSpace.SCREEN,
             ),
-            capture_backend="desktop.copy",
+            capture_backend_id="desktop.copy",
         )
 
     def test_backend_profile_declares_capture_specific_requirements(self) -> None:

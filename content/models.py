@@ -115,7 +115,7 @@ class ContentFrame:
                 source_id=self.capture.source_id,
                 surface=self.capture.surface,
                 root_to_screen=content_to_screen,
-                capture_backend=self.capture.capture_backend,
+                capture_backend_id=self.capture.capture_backend_id,
             ),
         )
 

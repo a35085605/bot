@@ -302,7 +302,7 @@ class FrameInfo:
     source_id: str
     surface: CaptureSurface | None
     root_to_screen: CoordinateTransform
-    capture_backend: str
+    capture_backend_id: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.frame_id, FrameId):
@@ -338,9 +338,9 @@ class FrameInfo:
         )
         object.__setattr__(
             self,
-            "capture_backend",
+            "capture_backend_id",
             _normalize_non_empty_text(
-                self.capture_backend,
+                self.capture_backend_id,
                 field_name="capture backend",
             ),
         )

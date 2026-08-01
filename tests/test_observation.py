@@ -40,7 +40,7 @@ class ObservationTest(unittest.TestCase):
                     source=CoordinateSpace.ROOT,
                     target=CoordinateSpace.SCREEN,
                 ),
-                capture_backend="test.capture",
+                capture_backend_id="test.capture",
             ),
             image=RasterImage(
                 pixels=np.zeros((3, 4), dtype=np.uint8),

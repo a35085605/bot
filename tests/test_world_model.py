@@ -80,7 +80,7 @@ class WorldModelTest(unittest.TestCase):
                     offset_x=100,
                     offset_y=200,
                 ),
-                capture_backend="test.capture",
+                capture_backend_id="test.capture",
             ),
             quality=CaptureQuality(usable=usable),
             scene=SceneObservation(
@@ -213,7 +213,7 @@ class WorldModelTest(unittest.TestCase):
             source_id=snapshot.frame.source_id,
             surface=snapshot.frame.surface,
             root_to_screen=snapshot.frame.root_to_screen,
-            capture_backend=snapshot.frame.capture_backend,
+            capture_backend_id=snapshot.frame.capture_backend_id,
         )
 
         with self.assertRaises(ValueError):
