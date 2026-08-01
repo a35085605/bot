@@ -3,15 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from capture import (
-    CaptureQuality,
-    CaptureStreamId,
-    CaptureSurface,
-    CoordinateSpace,
-    CoordinateTransform,
-    FrameId,
-    FrameInfo,
-)
 from evidence import (
     Evidence,
     EvidenceId,
@@ -20,6 +11,15 @@ from evidence import (
     EvidenceSet,
 )
 from geometry.rect import Rect
+from observation.capture import (
+    CaptureQuality,
+    CaptureStreamId,
+    CaptureSurface,
+    CoordinateSpace,
+    CoordinateTransform,
+    FrameId,
+    FrameInfo,
+)
 from semantic_perception import (
     ControlRule,
     EvidenceRequirement,
