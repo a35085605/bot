@@ -19,51 +19,36 @@ class FrameCaptureBackend(Protocol):
     The backend may use Window, ADB, or another platform mechanism to locate the
     pixel source, but its result contains capture facts only. Current focus,
     process, transport, and control readiness belong to Target Runtime.
+
+    Capture availability cannot be guaranteed inside this boundary. Expected
+    blockers are returned as ``CaptureUnavailable`` values so orchestration can
+    decide whether to prepare the environment, retry, wait, or stop.
     """
 
-    def acquire(self) -> AcquiredFrame:
-        """Acquire one backend frame before pixel-ownership normalization."""
+    @property
+    def profile(self) -> CaptureBackendProfile:
+        """Declare the backend identity and static technical requirements."""
+        ...
+
+    def acquire(self) -> AcquiredFrameResult:
+        """Acquire one backend frame or describe why it is unavailable."""
         ...
 
 
 class CapturedFrameSource(Protocol):
-    """Application-facing source of materialized captured frames.
+    """Application-facing source of materialized capture results.
 
-    A returned ``CapturedFrame`` is an immutable visual observation with owned
-    contiguous pixels. It is not a complete observation cycle and does not imply
-    that the logical target exists or can currently be controlled.
-    """
-
-    def capture(self) -> CapturedFrame:
-        """Return one materialized frame for application consumers."""
-        ...
-
-
-class ConditionalFrameCaptureBackend(Protocol):
-    """Capture backend that declares requirements and may be unavailable.
-
-    Implementations may inspect platform facts needed by their capture
-    mechanism, but must not restore, activate, raise, or otherwise mutate the
-    target environment. Expected runtime blockers are returned as
-    ``CaptureUnavailable`` values.
+    Successful results contain immutable visual observations with owned
+    contiguous pixels. Unavailable results preserve expected capture blockers.
+    A source is not a complete observation cycle and does not imply that the
+    logical target exists or can currently be controlled.
     """
 
     @property
     def profile(self) -> CaptureBackendProfile:
+        """Expose the underlying capture mechanism's static profile."""
         ...
 
-    def try_acquire(self) -> AcquiredFrameResult:
-        """Acquire one frame or describe why acquisition is unavailable."""
-        ...
-
-
-class ConditionalCapturedFrameSource(Protocol):
-    """Application-facing conditional source of materialized frames."""
-
-    @property
-    def profile(self) -> CaptureBackendProfile:
-        ...
-
-    def try_capture(self) -> CapturedFrameResult:
-        """Return a materialized frame or a typed unavailable result."""
+    def capture(self) -> CapturedFrameResult:
+        """Return one materialized frame or a typed unavailable result."""
         ...
