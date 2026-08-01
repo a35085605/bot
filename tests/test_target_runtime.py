@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 from datetime import datetime, timezone
 import unittest
 
-from target_runtime import (
+from observation.target_runtime import (
     AdbChannelInspector,
     AdbChannelState,
     AdbDeviceStatus,

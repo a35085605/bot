@@ -31,7 +31,7 @@ from execution import (
 )
 from geometry.rect import Rect
 from geometry.size import Size
-from target_runtime import TargetId
+from observation.target_runtime import TargetId
 
 
 class ExecutionCapabilityDomainTest(unittest.TestCase):

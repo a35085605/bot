@@ -5,7 +5,10 @@ import unittest
 
 import numpy as np
 
-from capture import (
+from geometry.rect import Rect
+from imaging import RasterImage
+from observation import ObservationBundle
+from observation.capture import (
     CapturedFrame,
     CaptureQuality,
     CaptureStreamId,
@@ -15,15 +18,12 @@ from capture import (
     FrameInfo,
     PixelFormat,
 )
-from geometry.rect import Rect
-from imaging import RasterImage
-from observation import ObservationBundle
-from target_runtime import (
+from observation.target_runtime import (
     TargetAvailability,
     TargetId,
     TargetRuntimeSnapshot,
 )
-from temporal import TemporalSnapshot
+from observation.temporal import TemporalSnapshot
 
 
 class ObservationTest(unittest.TestCase):

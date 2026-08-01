@@ -6,7 +6,10 @@ import unittest
 
 import numpy as np
 
-from capture import (
+from geometry.point import Point
+from geometry.rect import Rect
+from imaging import RasterImage, crop_image
+from observation.capture import (
     AcquiredFrame,
     CapturedFrame,
     CaptureQuality,
@@ -20,9 +23,6 @@ from capture import (
     PixelFormat,
     materialize_capture,
 )
-from geometry.point import Point
-from geometry.rect import Rect
-from imaging import RasterImage, crop_image
 
 
 class CaptureTest(unittest.TestCase):

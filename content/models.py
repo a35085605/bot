@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from capture import CoordinateSpace, CoordinateTransform, FrameInfo
 from geometry.point import Point
 from geometry.rect import Rect
+from observation.capture import CoordinateSpace, CoordinateTransform, FrameInfo
 
 
 @dataclass(frozen=True, slots=True)

@@ -5,7 +5,9 @@ import unittest
 
 import numpy as np
 
-from capture import (
+from geometry.rect import Rect
+from imaging import RasterImage, crop_image
+from observation.capture import (
     AcquiredFrame,
     CaptureBackendProfile,
     CaptureQuality,
@@ -20,8 +22,6 @@ from capture import (
     MaterializingConditionalFrameSource,
     PixelFormat,
 )
-from geometry.rect import Rect
-from imaging import RasterImage, crop_image
 
 
 class CaptureRequirementsTest(unittest.TestCase):

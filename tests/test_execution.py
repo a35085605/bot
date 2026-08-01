@@ -3,24 +3,24 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from capture import (
+from content import ContentFrame, ContentPlacementInCapture
+from execution import (
+    ContentPointTarget,
+    ExecutionTargetFailureReason,
+    ExecutionTargetUnavailable,
+    ResolvedExecutionTarget,
+    ScreenPoint,
+)
+from geometry.point import Point
+from geometry.rect import Rect
+from observation.capture import (
     CaptureStreamId,
     CoordinateSpace,
     CoordinateTransform,
     FrameId,
     FrameInfo,
 )
-from content import ContentFrame, ContentPlacementInCapture
-from control import ScreenPoint
-from execution import (
-    ContentPointTarget,
-    ExecutionTargetFailureReason,
-    ExecutionTargetUnavailable,
-    ResolvedExecutionTarget,
-)
-from geometry.point import Point
-from geometry.rect import Rect
-from target_runtime import (
+from observation.target_runtime import (
     ControlCapability,
     ControlChannelId,
     ControlChannelKind,
