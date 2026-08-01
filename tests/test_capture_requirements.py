@@ -9,6 +9,7 @@ from geometry.rect import Rect
 from imaging import RasterImage, crop_image
 from observation.capture import (
     AcquiredFrame,
+    CapturedFrame,
     CaptureBackendProfile,
     CaptureQuality,
     CaptureRequirement,
@@ -19,7 +20,7 @@ from observation.capture import (
     CoordinateTransform,
     FrameId,
     FrameInfo,
-    MaterializingConditionalFrameSource,
+    MaterializingFrameSource,
     PixelFormat,
 )
 
@@ -98,7 +99,7 @@ class CaptureRequirementsTest(unittest.TestCase):
                 ),
             )
 
-    def test_conditional_source_materializes_successful_acquisition(self) -> None:
+    def test_frame_source_materializes_successful_acquisition(self) -> None:
         root = RasterImage(
             pixels=np.arange(5 * 6, dtype=np.uint8).reshape(5, 6),
             pixel_format=PixelFormat.GRAY8,
@@ -118,17 +119,17 @@ class CaptureRequirementsTest(unittest.TestCase):
             def profile(self) -> CaptureBackendProfile:
                 return profile
 
-            def try_acquire(self) -> AcquiredFrame:
+            def acquire(self) -> AcquiredFrame:
                 return acquired
 
-        frame = MaterializingConditionalFrameSource(
-            backend=Backend()
-        ).try_capture()
+        result = MaterializingFrameSource(backend=Backend()).capture()
 
-        self.assertTrue(frame.image.is_materialized)
-        self.assertFalse(np.shares_memory(frame.pixels, root.pixels))
+        self.assertIsInstance(result, CapturedFrame)
+        assert isinstance(result, CapturedFrame)
+        self.assertTrue(result.image.is_materialized)
+        self.assertFalse(np.shares_memory(result.pixels, root.pixels))
 
-    def test_conditional_source_preserves_unavailable_signal(self) -> None:
+    def test_frame_source_preserves_unavailable_signal(self) -> None:
         profile = CaptureBackendProfile(
             backend_id="desktop.copy",
             requirements=frozenset(
@@ -146,16 +147,14 @@ class CaptureRequirementsTest(unittest.TestCase):
             def profile(self) -> CaptureBackendProfile:
                 return profile
 
-            def try_acquire(self) -> CaptureUnavailable:
+            def acquire(self) -> CaptureUnavailable:
                 return unavailable
 
-        result = MaterializingConditionalFrameSource(
-            backend=Backend()
-        ).try_capture()
+        result = MaterializingFrameSource(backend=Backend()).capture()
 
         self.assertIs(result, unavailable)
 
-    def test_conditional_source_rejects_undeclared_requirement(self) -> None:
+    def test_frame_source_rejects_undeclared_requirement(self) -> None:
         profile = CaptureBackendProfile(backend_id="desktop.copy")
 
         class Backend:
@@ -163,7 +162,7 @@ class CaptureRequirementsTest(unittest.TestCase):
             def profile(self) -> CaptureBackendProfile:
                 return profile
 
-            def try_acquire(self) -> CaptureUnavailable:
+            def acquire(self) -> CaptureUnavailable:
                 return CaptureUnavailable(
                     backend_id="desktop.copy",
                     reason=CaptureUnavailableReason.REQUIREMENT_UNMET,
@@ -176,11 +175,9 @@ class CaptureRequirementsTest(unittest.TestCase):
             ValueError,
             "requirements not declared",
         ):
-            MaterializingConditionalFrameSource(
-                backend=Backend()
-            ).try_capture()
+            MaterializingFrameSource(backend=Backend()).capture()
 
-    def test_conditional_source_rejects_mismatched_backend_id(self) -> None:
+    def test_frame_source_rejects_mismatched_backend_id(self) -> None:
         profile = CaptureBackendProfile(
             backend_id="desktop.copy",
             requirements=frozenset(
@@ -193,7 +190,7 @@ class CaptureRequirementsTest(unittest.TestCase):
             def profile(self) -> CaptureBackendProfile:
                 return profile
 
-            def try_acquire(self) -> CaptureUnavailable:
+            def acquire(self) -> CaptureUnavailable:
                 return CaptureUnavailable(
                     backend_id="other.backend",
                     reason=CaptureUnavailableReason.REQUIREMENT_UNMET,
@@ -206,9 +203,7 @@ class CaptureRequirementsTest(unittest.TestCase):
             ValueError,
             "backend_id must match backend profile",
         ):
-            MaterializingConditionalFrameSource(
-                backend=Backend()
-            ).try_capture()
+            MaterializingFrameSource(backend=Backend()).capture()
 
 
 if __name__ == "__main__":
