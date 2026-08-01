@@ -66,3 +66,7 @@ without acquiring or interpreting a frame.
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for the observation families, coordination model, freshness rules, and dependency
 direction.
+
+See [`docs/architecture/capture_target_boundaries.md`](docs/architecture/capture_target_boundaries.md)
+for the separation between capture-time pixel provenance, clean content,
+visual-target binding, current Target Runtime state, and execution preflight.
