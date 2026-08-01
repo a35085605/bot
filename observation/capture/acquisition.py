@@ -4,7 +4,15 @@ from dataclasses import dataclass
 
 from imaging import materialize_image
 from observation.capture.domain.models import AcquiredFrame, CapturedFrame
-from observation.capture.ports import FrameCaptureBackend
+from observation.capture.domain.requirements import (
+    CaptureBackendProfile,
+    CaptureUnavailable,
+)
+from observation.capture.ports import (
+    CapturedFrameAttempt,
+    ConditionalFrameCaptureBackend,
+    FrameCaptureBackend,
+)
 
 
 def materialize_capture(frame: AcquiredFrame) -> CapturedFrame:
@@ -37,3 +45,45 @@ class MaterializingFrameSource:
                 "frame capture backend must return AcquiredFrame"
             )
         return materialize_capture(acquired)
+
+
+@dataclass(frozen=True, slots=True)
+class MaterializingConditionalFrameSource:
+    """Normalize successful conditional acquisitions without hiding blockers."""
+
+    backend: ConditionalFrameCaptureBackend
+
+    def __post_init__(self) -> None:
+        if not hasattr(self.backend, "profile"):
+            raise TypeError("backend must provide profile")
+        if not hasattr(self.backend, "try_acquire"):
+            raise TypeError("backend must provide try_acquire()")
+        if not isinstance(self.backend.profile, CaptureBackendProfile):
+            raise TypeError("backend profile must be CaptureBackendProfile")
+
+    @property
+    def profile(self) -> CaptureBackendProfile:
+        return self.backend.profile
+
+    def try_capture(self) -> CapturedFrameAttempt:
+        attempted = self.backend.try_acquire()
+        if isinstance(attempted, CaptureUnavailable):
+            if attempted.backend_id != self.profile.backend_id:
+                raise ValueError(
+                    "capture unavailable backend_id must match backend profile"
+                )
+            undeclared = set(attempted.unmet_requirements).difference(
+                self.profile.requirements
+            )
+            if undeclared:
+                raise ValueError(
+                    "capture unavailable contains requirements not declared "
+                    "by the backend profile"
+                )
+            return attempted
+        if not isinstance(attempted, AcquiredFrame):
+            raise TypeError(
+                "conditional frame capture backend must return AcquiredFrame "
+                "or CaptureUnavailable"
+            )
+        return materialize_capture(attempted)
