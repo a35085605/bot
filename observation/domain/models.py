@@ -21,7 +21,7 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ObservationCoherence:
-    """Acquisition skew relative to one cycle's Temporal observation.
+    """Acquisition skew relative to one batch's Temporal observation.
 
     Coherence describes when independently acquired snapshots were sampled. It
     does not claim that the snapshots are atomic, mutually consistent, fresh
@@ -46,16 +46,16 @@ class ObservationCoherence:
 
 @dataclass(frozen=True, slots=True)
 class ObservationBundle:
-    """Snapshots acquired for one orchestration cycle.
+    """Snapshots acquired for one caller-defined acquisition batch.
 
     Observation is broader than visual capture. ``capture`` and ``runtime`` are
     independent, optional observation families; either may be omitted when the
-    current policy does not need it. ``temporal`` is the required timing anchor
-    in the current model.
+    caller does not need it. ``temporal`` is the required timing anchor in the
+    current model.
 
     Members retain their own timestamps and are not assumed to be atomic. This
-    bundle is a transport value for one cycle, not durable agent state, semantic
-    perception output, a decision, or an execution guarantee.
+    bundle transports acquired facts; it is not durable caller state,
+    interpretation output, a policy decision, or an execution guarantee.
     """
 
     cycle_id: str
@@ -81,7 +81,7 @@ class ObservationBundle:
             "cycle_id",
             _normalize_non_empty_text(
                 self.cycle_id,
-                field_name="observation cycle id",
+                field_name="observation batch id",
             ),
         )
 
