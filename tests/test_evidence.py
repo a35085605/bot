@@ -12,7 +12,7 @@ from evidence import (
     EvidenceSet,
 )
 from geometry.rect import Rect
-from world_model import FrameId
+from observation import FrameId
 
 
 class EvidenceTest(unittest.TestCase):
