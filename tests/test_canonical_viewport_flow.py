@@ -4,19 +4,14 @@ from datetime import datetime, timezone
 import unittest
 
 from content import ContentFrame, ContentPlacementInCapture
-from evidence import EvidenceSet
+from geometry.point import Point
 from geometry.rect import Rect
 from observation.capture import (
-    CaptureQuality,
     CaptureStreamId,
     CoordinateSpace,
     CoordinateTransform,
     FrameId,
     FrameInfo,
-)
-from semantic_perception import (
-    SemanticPerceptionConfig,
-    SemanticSnapshotBuilder,
 )
 
 
@@ -58,62 +53,52 @@ class ContentFlowTest(unittest.TestCase):
             ),
         )
 
-    def test_world_snapshot_uses_content_frame(self) -> None:
+    def test_content_frame_establishes_zero_based_bounds(self) -> None:
         content = self._content()
-        evidence_set = EvidenceSet(
-            frame_id=content.frame.frame_id,
-            source_id=content.frame.source_id,
-            root_bounds=content.bounds_content,
-        )
-
-        snapshot = SemanticSnapshotBuilder(
-            SemanticPerceptionConfig()
-        ).build(
-            content=content,
-            quality=CaptureQuality(usable=True),
-            evidence_set=evidence_set,
-        )
 
         self.assertEqual(
-            snapshot.frame.root_bounds,
+            content.bounds_content,
             Rect(x=0, y=0, width=1600, height=900),
         )
+        self.assertEqual(content.frame.root_bounds, content.bounds_content)
         self.assertNotEqual(
-            snapshot.frame.root_bounds,
+            content.frame.root_bounds,
             content.capture.root_bounds,
         )
 
-    def test_builder_rejects_raw_capture_bounds_for_cropped_content(self) -> None:
+    def test_content_coordinates_map_back_to_capture(self) -> None:
         content = self._content()
 
-        with self.assertRaises(ValueError):
-            SemanticSnapshotBuilder(
-                SemanticPerceptionConfig()
-            ).build(
-                content=content,
-                quality=CaptureQuality(usable=True),
-                evidence_set=EvidenceSet(
-                    frame_id=content.frame.frame_id,
-                    source_id=content.frame.source_id,
-                    root_bounds=content.capture.root_bounds,
-                ),
-            )
-
-    def test_builder_requires_one_context_input(self) -> None:
-        content = self._content()
-        evidence_set = EvidenceSet(
-            frame_id=content.frame.frame_id,
-            source_id=content.frame.source_id,
-            root_bounds=content.bounds_content,
+        self.assertEqual(
+            content.content_point_to_capture(Point(x=40, y=30)),
+            Point(x=200, y=150),
         )
-        builder = SemanticSnapshotBuilder(SemanticPerceptionConfig())
+        self.assertEqual(
+            content.capture_point_to_content(Point(x=200, y=150)),
+            Point(x=40, y=30),
+        )
 
+    def test_content_frame_composes_capture_time_screen_mapping(self) -> None:
+        content = self._content()
+        mapping = content.frame.root_to_screen
+
+        self.assertIsNotNone(mapping)
+        assert mapping is not None
+        self.assertEqual(mapping.offset_x, 260)
+        self.assertEqual(mapping.offset_y, 320)
+
+    def test_content_rejects_bounds_outside_capture(self) -> None:
         with self.assertRaises(ValueError):
-            builder.build(
-                content=content,
-                frame=content.capture,
-                quality=CaptureQuality(usable=True),
-                evidence_set=evidence_set,
+            ContentFrame(
+                capture=self._capture(),
+                placement=ContentPlacementInCapture(
+                    bounds_capture=Rect(
+                        x=1800,
+                        y=1100,
+                        width=200,
+                        height=200,
+                    ),
+                ),
             )
 
 
