@@ -4,11 +4,7 @@ import unittest
 
 import numpy as np
 
-from geometry.point import Point
-from geometry.rect import Rect
-from geometry.size import Size
-from imaging import PixelFormat, RasterImage, crop_image
-from vision.reference_assets import (
+from extensions.vision.reference_assets import (
     AssetRegionOrigin,
     ContentRegionOrigin,
     ExternalResourceOrigin,
@@ -19,17 +15,21 @@ from vision.reference_assets import (
     ReferenceContentProfile,
     ReferenceImage,
 )
-from vision.reference_assets.adapters.providers.in_memory import (
+from extensions.vision.reference_assets.adapters.providers.in_memory import (
     InMemoryReferenceAssetProvider,
 )
-from vision.template_matching.application.matching_service import (
+from extensions.vision.template_matching.application.matching_service import (
     TemplateMatchingService,
 )
-from vision.template_matching.application.template_factory import (
+from extensions.vision.template_matching.application.template_factory import (
     ReferenceMatchTemplateFactory,
 )
-from vision.template_matching.domain.models import MatchTemplate
-from vision.template_matching.domain.results import MatchCandidate
+from extensions.vision.template_matching.domain.models import MatchTemplate
+from extensions.vision.template_matching.domain.results import MatchCandidate
+from geometry.point import Point
+from geometry.rect import Rect
+from geometry.size import Size
+from imaging import PixelFormat, RasterImage, crop_image
 
 
 class _ManifestRepository:

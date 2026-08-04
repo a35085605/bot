@@ -12,7 +12,7 @@ Content image + resolved content ROI
                  ▼
          detector_input preparation
                  │
-                 ├──────────────► Vision receives pixels only
+                 ├──────────────► extensions.vision receives pixels only
                  │                         │
                  │                         ▼
                  │              detector-local result
@@ -33,7 +33,7 @@ retry, or verify effects.
 geometry ───────────────► imaging
                               │
 observation ───────┐           ▼
-geometry ──────────┼──► detector_input
+geometry ──────────┼──► detector_input ──► optional detector extensions
 imaging ───────────┘           │
                               ▼
 evidence ─────────────► perception_integration
@@ -42,14 +42,17 @@ evidence ─────────────► perception_integration
 - `imaging` owns immutable rasters, crop, resize capability, and concrete image
   adapters.
 - `detector_input` owns prepared images, placements, and invocation identity.
+- optional detector plug-ins such as `extensions.vision` consume prepared pixels
+  without becoming core dependencies.
 - `perception_integration` owns only detector-result-to-Evidence conversion.
 
-Callers import detector input contracts directly from `detector_input` and the
-bridge from `perception_integration`.
+Callers import detector input contracts directly from `detector_input`, optional
+vision capabilities from `extensions.vision`, and the bridge from
+`perception_integration`.
 
-Production Vision code must not import Observation, Evidence, window metadata,
-or screen-coordinate types. Evidence does not own detector-input preparation or
-Vision-specific result types.
+Optional detector extensions must not import Observation, window metadata, or
+screen-coordinate types merely to run a detector. Evidence does not own
+detector-input preparation or extension-specific result types.
 
 ## Spatial contract
 
@@ -85,6 +88,9 @@ capture backend, detector implementation, or scheduling policy.
 
 ```python
 from detector_input import FixedViewportRoiPreparer
+from extensions.vision.template_matching.application.matching_service import (
+    TemplateMatchingService,
+)
 from geometry.rect import Rect
 from geometry.size import Size
 from imaging import Interpolation
@@ -120,6 +126,10 @@ evidence = EvidenceAssembler.assemble(
 )
 ```
 
+The `TemplateMatchingService` import above identifies the optional extension
+boundary; the concrete `matching_service` instance is still supplied by the
+consumer's composition root.
+
 For a direct crop or a resize without padding, `content_bounds_local` equals
 `input_bounds_local`. Future detector-side letterboxing may describe only the
 unpadded content rectangle.
@@ -129,3 +139,6 @@ unpadded content rectangle.
 Screen conversion remains an Execution concern. Evidence stores content-root
 coordinates only; it does not carry window placement, client offsets, DPI
 scaling, or screen geometry.
+
+See [`extensions.md`](extensions.md) for extension activation and dependency
+rules.
