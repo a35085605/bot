@@ -3,169 +3,87 @@
 ## Purpose
 
 The `target_runtime` package models the latest observed operational state of one
-logical automation target and its potential control channels.
+logical automation target and its possible control channels.
 
-It is an observation boundary. It answers whether the target is known to exist
-and what Window, ADB, or future control channels currently report. It does not
-own visual interpretation, agent policy, application lifecycle effects, or input
-execution.
+It is a read-only interaction capability. It answers whether the target is known
+to exist and what Window, ADB, or future channels currently report. It does not
+own visual interpretation, caller policy, lifecycle effects, or input execution.
 
 ```text
-Capture / Semantic World State          Target Runtime
-what pixels and UI semantics exist      whether the target exists and how its
-                                        control channels are operating
-                 │                                      │
-                 └──────────────────┬───────────────────┘
-                                    ▼
-                                 Decision
-                                    │
-                                    ▼
-                                 Execution
+TargetRuntimeInspector
+          │
+          ▼
+TargetRuntimeSnapshot
+availability + channel state
+          │
+          ▼
+caller-owned logic
+          │
+          ▼
+execution preflight and capability adapter
 ```
 
-The visual branch is optional. A runtime snapshot that reports a missing target
-can support a launch decision without acquiring a frame.
+The caller may use a runtime snapshot without acquiring pixels, for example to
+choose whether to invoke a launch capability for a missing target.
 
-## Why the name Target Runtime
+## Target and channel observations
 
-`Target Runtime` means the target's time-sensitive operating condition. It does
-not refer to the Python runtime, an agent execution runtime, or a component that
-runs the target.
+`TargetRuntimeSnapshot.availability` distinguishes `AVAILABLE`, `MISSING`, and
+`UNKNOWN`. `UNKNOWN` must not be treated as `MISSING`.
 
-The boundary contains two levels of observation:
-
-- target-level availability, which distinguishes `AVAILABLE`, `MISSING`, and
-  `UNKNOWN`; and
-- channel-level state, which describes Window, ADB, or other ways the target
-  might be controlled.
-
-This is broader than `WindowState` or `AdbState`, because one logical target may
-expose several channels and can be known missing before any channel exists.
+Availability is separate from channel readiness. A target may exist while every
+Window, ADB, or future control channel is blocked, unavailable, or unknown.
+Each channel has its own identity, status, capabilities, blockers, and
+platform-specific detail.
 
 ## Read-only inspection
 
-The package defines immutable snapshots and the `TargetRuntimeInspector` port.
-Inspection must not intentionally change the target environment.
+The package defines immutable snapshots and inspection ports. Inspection must not
+intentionally change the target environment.
 
-In particular, Target Runtime does not:
+Target Runtime does not:
 
-- launch or terminate an application;
-- activate or restore a window;
-- send mouse, keyboard, text, or navigation input;
+- launch, close, terminate, or restart an application;
+- activate, restore, move, or resize a window;
 - start or reconnect ADB;
 - authorize a device; or
-- execute ADB shell commands.
+- send pointer, keyboard, text, navigation, or shell input.
 
-Those operations are external effects and belong to Execution adapters.
+Those operations belong to `execution` capability adapters.
 
-## Target availability
+## Window and ADB channels
 
-`TargetRuntimeSnapshot.availability` is a target-level fact:
+`WindowChannelState` records current operational window facts such as identity,
+process, title, client and outer bounds, focus relationship, minimized state,
+visibility, and responsiveness.
 
-- `AVAILABLE` means the inspector established that the logical target exists;
-- `MISSING` means the inspector established that it does not currently exist;
-- `UNKNOWN` means existence was not established.
+`AdbChannelState` records server reachability, selected device identity, device
+status, authorization, and transport readiness.
 
-`UNKNOWN` must not be treated as `MISSING`. An inspection failure, insufficient
-permissions, ambiguous identity, or unavailable platform API must not cause the
-agent to repeatedly relaunch a target that may already be running.
-
-Availability is also separate from channel readiness. A target may be available
-while every channel is blocked or unavailable.
-
-## Logical targets and control channels
-
-A logical target may expose more than one control channel. An emulator can, for
-example, have both a desktop-window channel and an ADB channel. Each channel has
-its own identity, status, capabilities, blockers, and platform-specific observed
-detail.
-
-Common channel states are:
-
-- `READY`: Execution may use the channel and no blocker is present;
-- `BLOCKED`: the channel exists but a known precondition is not satisfied;
-- `UNAVAILABLE`: the channel cannot currently be used; and
-- `UNKNOWN`: readiness has not been established.
-
-Blockers are stable string values such as `window.not_foreground`,
-`window.minimized`, `adb.device_missing`, or `adb.unauthorized`. They are data,
-not exceptions, because blocked and unavailable channels are normal runtime
-conditions.
-
-## Window state
-
-`WindowChannelState` records current operational window facts:
-
-- target and foreground window identity;
-- process ID and title;
-- client and outer screen bounds;
-- focus relationship; and
-- optional minimized, visibility, and responsiveness observations.
-
-These values do not belong to `CapturedFrame`. Capture retains only surface
-identity and capture-time geometry needed to interpret one historical pixel
-frame. Reading runtime state has no side effect. Setting or restoring focus
-remains an Execution responsibility.
-
-## ADB state
-
-`AdbChannelState` records whether the ADB server is reachable, the selected
-device serial and device status, and whether a transport is ready. It does not
-start the server, authorize a device, reconnect a transport, or invoke
-`adb shell input`.
-
-ADB host and port are adapter configuration or endpoint identity. They should not
-be copied into a visual frame merely because a capture adapter used ADB to obtain
-pixels.
+These current runtime facts do not belong in `CapturedFrame`. Capture retains
+only the source identity and geometry required to explain one historical raster.
 
 ## Per-channel inspection ports
 
-`WindowChannelState` and `AdbChannelState` are immutable domain values, not
-platform adapters. The operation that acquires those values is represented by
-the generic `ControlChannelInspector[ChannelState]` port and its specialized
-protocols:
+`ControlChannelInspector[ChannelState]` and its Window/ADB specializations allow
+platform adapters or test doubles to inspect one channel independently. An
+aggregate `TargetRuntimeInspector` may combine several inspectors into one
+snapshot while establishing target-level availability separately.
 
-```text
-WindowChannelInspector
-        │
-        └──► ControlChannelSnapshot[WindowChannelState]
+No channels, or no ready channels, does not prove that the target is missing.
 
-AdbChannelInspector
-        │
-        └──► ControlChannelSnapshot[AdbChannelState]
-```
+## Freshness and execution preflight
 
-A Win32, X11, Wayland, macOS, ADB CLI, emulator API, or test-double adapter may
-implement one of these ports. The generic snapshot remains responsible for
-validating that the channel kind agrees with the concrete details type.
+A runtime snapshot is a timestamped prior inspection. Focus, geometry, process
+existence, authorization, and transport state can change immediately afterward.
 
-An aggregate `TargetRuntimeInspector` may compose several per-channel inspectors
-into one `TargetRuntimeSnapshot`. It must still establish target-level
-availability independently: no ready channels, or no discovered channels, does
-not prove that the logical target is missing.
+The consuming application may use a snapshot to select an operation or channel,
+but the snapshot is not a lock. Target resolution and execution adapters must
+revalidate mutable preconditions immediately before an external side effect.
 
-Per-channel inspection remains read-only. Preparing a blocked channel, restoring
-focus, reconnecting a transport, or sending input belongs to Execution.
-
-## Snapshot freshness
-
-A runtime snapshot is a timestamped result of a prior inspection. Focus,
-geometry, process existence, and transport state can change immediately after
-inspection.
-
-The snapshot can guide Decision and scheduling, but it is not a lock or an
-execution guarantee. Execution must revalidate mutable preconditions immediately
-before producing an external side effect.
-
-## Adapter boundary
-
-Adapters may implement `TargetRuntimeInspector`, `WindowChannelInspector`, or
-`AdbChannelInspector` using Win32, X11, Wayland, macOS accessibility APIs,
-process inspection, ADB, emulator APIs, or test doubles. An aggregate adapter may
-combine several platform queries or per-channel inspectors to produce one
-immutable runtime snapshot, but every inspection path must preserve the read-only
-contract.
+The framework reports observed state and native operation results. The caller
+owns action selection, retry/fallback policy, and application-level success
+criteria.
 
 See [Observation boundaries](observation_boundaries.md) for the relationship
-between Capture, Target Runtime, Temporal observations, coordination, Decision,
-and Execution.
+between Capture, Target Runtime, Temporal, and caller-owned acquisition logic.

@@ -3,150 +3,84 @@
 ## Purpose
 
 A detector should receive pixels and detector-local coordinates. It should not
-know how a canonical viewport was captured, which scene selected a region, or
-how detector results later become semantic evidence.
-
-This boundary prepares a detector image from an already resolved canonical
-viewport-root ROI:
+know how content was captured, why a caller selected a region, or how results
+will be interpreted.
 
 ```text
-Canonical viewport pixels + viewport-root ROI + requested output size
-                              │
-                              ▼
-                       detector_input
-                              │
-                    crop through imaging
-                              │
-                    resize through imaging
-                              │
-                              ▼
-                 PreparedDetectorInput
-                 ├── RasterImage
-                 └── DetectorInputContext
-                              │
-             ┌────────────────┴────────────────┐
-             ▼                                 ▼
-     Vision receives pixels          Evidence bridge receives
-                                     placement and observation ID
+Content pixels + content-root ROI + requested output size
+                         │
+                         ▼
+                  detector_input
+                         │
+                crop / optional resize
+                         │
+                         ▼
+             PreparedDetectorInput
+             ├── RasterImage
+             └── DetectorInputContext
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+ detector receives pixels      optional result bridge receives
+                               placement and observation identity
 ```
 
 ## Ownership
 
 ### `imaging`
 
-The top-level `imaging` package owns general raster operations:
-
-- one public immutable logical `RasterImage`
-- private owned and shared-slice storage implementations
-- image-local zero-copy crop
-- explicit materialization into independent contiguous storage
-- interpolation selection
-- the `ImageResizer` capability
-- the OpenCV resize adapter
-
-It does not import Observation, Perception, Vision, Evidence, or World Model.
-It assigns no scene, control, template, or color-order meaning to pixels.
+`imaging` owns immutable raster values, crop, materialization, interpolation,
+resize capability, and concrete image adapters. It does not assign application
+or detector meaning to pixels.
 
 ### `detector_input`
 
-The top-level `detector_input` package owns detector invocation input:
+`detector_input` owns the prepared raster and the coordinate correspondence for
+one detector invocation:
 
-- `ImagePlacement`
-- `DetectorInputContext`
-- `PreparedDetectorInput`
-- `PreparationProvenance`
-- `FixedViewportRoiPreparer`
+- `ImagePlacement`;
+- `DetectorInputContext`;
+- `PreparedDetectorInput`;
+- `PreparationProvenance`; and
+- `FixedViewportRoiPreparer`.
 
-It combines general imaging operations with observation identity and canonical
-viewport-root placement. It does not choose an ROI or detector.
+It does not choose an ROI, select a detector, interpret results, retain state, or
+schedule work.
 
-### Perception planning
+### Caller or extension planning
 
-Perception planning is responsible for deciding what resolved viewport-root ROI
-to inspect and what detector input size to request. It does not implement pixel
-crop, resize, or affine warping.
+The consuming application or an optional sensing extension chooses which
+content-root ROI to inspect and which detector input size to request. That policy
+is intentionally outside this package.
 
 ## Fixed ROI contract
 
-`FixedViewportRoiPreparer` requires:
+`FixedViewportRoiPreparer` requires frame and source identity, complete
+content-root bounds, a matching raster, a contained ROI, an output size, and an
+interpolation method.
 
-- frame and source identity
-- complete canonical viewport-root bounds
-- a raster whose dimensions equal those root bounds
-- a resolved ROI contained by the root bounds
-- an output size
-- an interpolation method
-
-The preparer crops the ROI and resizes it only when its source and output sizes
-differ. A crop that does not require resizing remains a logical `RasterImage`
-sharing read-only storage with the source; detector code does not observe that
-storage choice. Concrete adapters make pixels contiguous only when their native
-API requires it.
-
-For this version there is no padding, therefore:
+The preparer crops the ROI and resizes only when the source and output sizes
+differ. For this version there is no padding, therefore:
 
 ```text
 input_bounds_local == content_bounds_local
 ```
 
-The placement records:
-
-```text
-detector-local content --scale/translation--> canonical viewport-root ROI
-```
-
-The complete detector input maps exactly back to the requested ROI, even when
-the two rectangles have different dimensions.
-
-## Example
-
-```python
-from detector_input import FixedViewportRoiPreparer
-from geometry.rect import Rect
-from geometry.size import Size
-from imaging import Interpolation
-from imaging.adapters import OpenCVImageResizer
-
-source = perception_viewport.image
-prepared = FixedViewportRoiPreparer(
-    resizer=OpenCVImageResizer(),
-).prepare(
-    frame_id=perception_viewport.frame_id,
-    source_id=perception_viewport.source_id,
-    root_bounds=perception_viewport.root_bounds,
-    image=source,
-    roi_root=Rect(x=1200, y=675, width=267, height=150),
-    output_size=Size(width=320, height=180),
-    interpolation=Interpolation.LINEAR,
-)
-
-candidate = matching_service.match(
-    image=prepared.pixels,
-    template_key="template.login_button_active",
-    candidate_floor=0.7,
-)
-
-evidence = EvidenceAssembler.assemble(
-    context=prepared.context,
-    bounds_local=candidate.rect,
-    # evidence identity, score, provenance, and result omitted
-)
-```
-
-Vision receives only `prepared.pixels` and the template. It does not know the
-source ROI, viewport resolution, or resize history.
+`ImagePlacement` records the mapping from detector-local content back to the
+selected content-root ROI. Detector output can therefore be translated without
+giving the detector capture, window, device, or execution knowledge.
 
 ## Non-goals
 
-This version does not provide:
+This package does not provide:
 
-- reference-resolution ROI registration
-- template authoring metadata
-- anchor-relative or local-of-local ROI resolution
-- padding or letterboxing
-- rotation, shear, perspective, or arbitrary affine image warping
-- detector scheduling or dependency graphs
+- scene, control, goal, or workflow semantics;
+- detector selection or scheduling;
+- cross-frame state or memory;
+- reference-resolution ROI registration;
+- anchor-relative ROI resolution;
+- padding or letterboxing; or
+- rotation, shear, perspective, or arbitrary affine warping.
 
 General coordinate transforms belong in `geometry`; pixel warping belongs in
-`imaging`. A future affine-warp PR should preserve that split rather than adding
-those operations to Perception.
+`imaging`; interpretation and policy belong to the consuming application.
