@@ -21,7 +21,7 @@ Content pixels + content-root ROI + requested output size
                          │
           ┌──────────────┴──────────────┐
           ▼                             ▼
- optional extension detector    optional result bridge receives
+ external detector package      optional result bridge receives
  receives pixels                placement and observation identity
 ```
 
@@ -47,13 +47,13 @@ one detector invocation:
 It does not choose an ROI, select a detector, interpret results, retain state, or
 schedule work.
 
-### Caller or extension planning
+### Caller or external extension planning
 
-The consuming application or an optional sensing extension chooses which
+The consuming application or an external sensing extension chooses which
 content-root ROI to inspect and which detector input size to request. That policy
-is intentionally outside this package. The bundled `extensions.vision` plug-in
-is one possible consumer of this boundary; another plug-in may use the same
-prepared-input contracts with a different detector implementation.
+is intentionally outside this package. No detector extension is bundled in this
+repository; separately maintained packages may consume the same prepared-input
+contracts.
 
 ## Fixed ROI contract
 
@@ -87,4 +87,4 @@ This package does not provide:
 General coordinate transforms belong in `geometry`; pixel warping belongs in
 `imaging`; interpretation and policy belong to the consuming application.
 
-See [`extensions.md`](extensions.md) for the optional plug-in boundary.
+See [`extensions.md`](extensions.md) for the external extension boundary.

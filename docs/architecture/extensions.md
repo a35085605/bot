@@ -1,24 +1,21 @@
-# Optional extensions
+# External extensions
 
 ## Purpose
 
-`extensions/` contains opt-in capabilities that build on the interaction kernel
-without becoming core dependencies. A consuming application enables an extension
-by importing it and wiring its ports and adapters in the application's composition
-root.
+Extension implementations are maintained outside this repository. The interaction
+kernel publishes reusable contracts, but it does not contain an `extensions/`
+source package and does not vendor, auto-discover, register, version, or release
+extension implementations.
 
-Extensions are not automatically discovered, registered, imported, or activated.
-Removing an extension therefore does not change the public contracts owned by the
-core framework.
+A consuming application installs the external packages it needs and wires them
+explicitly in its own composition root.
 
 ```text
 consuming application
         │
-        ├── chooses zero or more extensions
-        │       ├── extensions.vision
-        │       └── extensions.<another_plugin>
-        │
-        └── composes extension ports with core contracts and adapters
+        ├── policy / state / semantics
+        ├── separately installed extension packages
+        └── interaction-kernel contracts and adapters
 ```
 
 ## Dependency rule
@@ -28,76 +25,54 @@ The dependency direction is one way:
 ```text
 consumer composition
         │
-        ▼
-optional extensions
-        │
-        ▼
-public interaction contracts
-├── observation
-├── content and targeting
-├── detector_input and evidence
-├── execution
-└── imaging and geometry
+        ├──────────────► external extensions
+        │                         │
+        │                         ▼
+        └──────────────► public interaction contracts
+                          ├── observation
+                          ├── content and targeting
+                          ├── detector_input and evidence
+                          ├── execution
+                          └── imaging and geometry
 ```
 
-Core packages must not import from `extensions`. An extension may depend on public
-core contracts, but the core must remain usable when that extension is absent.
-Extensions should not depend on one another unless that relationship is explicit
-and documented as part of their public contract.
+An external extension may depend on public interaction contracts. Core packages
+must not import an extension, and the core must remain usable when every extension
+is absent.
 
-## Bundled vision extension
+## Repository ownership
 
-`extensions.vision` is the bundled vision plug-in. It currently provides:
+Extension-specific concerns belong to the repository or package that owns the
+extension, including:
 
-- `extensions.vision.reference_assets` for stable decoded visual assets and their
-  lineage; and
-- `extensions.vision.template_matching` for detector-local template matching,
-  suppression policies, and an OpenCV engine adapter.
+- implementation code and optional third-party dependencies;
+- domain models and adapter-specific ports that are not core contracts;
+- unit and integration tests;
+- reference assets or other extension-owned resources;
+- documentation, versioning, release notes, and compatibility policy; and
+- security updates and deprecation schedules.
 
-A consumer opts in through explicit imports:
+This repository may document generic integration boundaries, but it must not
+contain extension implementations or extension-specific tests.
 
-```python
-from extensions.vision.reference_assets import ReferenceImage
-from extensions.vision.template_matching.adapters.engines import (
-    OpenCVTemplateMatchEngine,
-)
-```
+## Composition rules
 
-The application may omit this extension, replace its engine or storage adapters,
-or introduce another implementation without changing observation, content,
-targeting, or execution packages.
+External extensions should follow these rules:
 
-## Adding another plug-in
+1. activation is explicit in the consuming application's composition root;
+2. dependencies on this framework use only public contracts;
+3. the core never imports or dynamically discovers the extension;
+4. removing or replacing the extension requires no changes to core packages;
+5. extension-to-extension dependencies are explicit and documented; and
+6. package-version compatibility is declared by the extension itself.
 
-A repository-local extension uses its own namespace:
+## Migration from bundled extensions
 
-```text
-extensions/
-├── vision/
-└── <plugin_name>/
-    ├── domain/
-    ├── ports/
-    ├── application/
-    └── adapters/
-```
+Earlier revisions of this repository bundled a vision implementation under
+`extensions.vision`, including reference-asset and template-matching capabilities.
+That implementation and its tests are no longer part of this repository.
 
-The internal layout may vary, but every plug-in should follow these rules:
-
-1. activation is explicit at the consumer composition root;
-2. optional third-party dependencies stay behind the plug-in's import path and
-   adapters;
-3. the plug-in depends only on public core contracts;
-4. core packages never import the plug-in;
-5. tests import the plug-in explicitly; and
-6. removing or replacing the plug-in does not require changes to the core.
-
-## Import migration
-
-The bundled vision implementation now uses the canonical namespace:
-
-```text
-vision.*  ->  extensions.vision.*
-```
-
-The old `vision.*` namespace is not retained as a compatibility facade. Consumers
-must migrate imports so the optional extension boundary remains visible in code.
+Consumers that relied on `extensions.vision.*` must move or install that
+implementation from a separately maintained package and update their imports
+before upgrading. The core does not provide a compatibility facade or an official
+external package location.
