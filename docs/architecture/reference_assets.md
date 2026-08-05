@@ -1,10 +1,16 @@
-# Reference Assets
+# Reference Assets vision extension
 
 ## Purpose
 
-`reference_assets` describes stable visual reference material independently of
-any one detector. A reference image may be consumed by template matching, image
-hashing, colour analysis, feature matching, or another vision use case.
+`extensions.vision.reference_assets` is part of the bundled, opt-in vision
+plug-in. It describes stable visual reference material independently of any one
+detector. A reference image may be consumed by template matching, image hashing,
+colour analysis, feature matching, or another vision use case.
+
+The interaction kernel does not import or activate this package. A consuming
+application enables it explicitly through its composition root, and may omit or
+replace it without changing core observation, content, targeting, or execution
+contracts.
 
 ```text
 Persistent storage + structured origin
@@ -118,5 +124,9 @@ The matching service keeps the reference asset key for result and Evidence
 provenance, while the engine receives only detector-local image data.
 
 New code imports asset models, ports, and adapters directly from
-`vision.reference_assets`. Template matching imports only `MatchTemplate` and
-its detector-specific engine contracts.
+`extensions.vision.reference_assets`. Template matching imports only
+`MatchTemplate` and its detector-specific engine contracts from
+`extensions.vision.template_matching`.
+
+See [`extensions.md`](extensions.md) for the opt-in plug-in dependency and
+composition rules.

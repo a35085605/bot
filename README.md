@@ -40,7 +40,8 @@ for:
 - target availability and Window, ADB, or future control-channel inspection;
 - visual-to-logical target binding and execution-time target resolution;
 - lifecycle, window-management, pointer, keyboard, text, and navigation effects;
-- optional detector-input, evidence, reference-asset, and vision primitives; and
+- optional detector-input and evidence primitives;
+- explicitly opt-in extensions, including the bundled vision plug-in; and
 - platform adapters that implement these contracts.
 
 Observation snapshots describe facts acquired at a point in time. They are not
@@ -50,6 +51,28 @@ an execution adapter resolves or performs an external effect.
 Execution success means that the native backend completed the requested attempt.
 It does not claim that an application-level goal or expected state transition was
 achieved.
+
+## Optional extensions
+
+Capabilities that are useful but not required by the interaction kernel live
+under `extensions/`. They are plug-ins composed explicitly by the consuming
+application, not dependencies loaded by the core.
+
+The bundled `extensions.vision` plug-in contains reference-asset and template-
+matching capabilities. Consumers may import it, omit it, replace its adapters, or
+add another plug-in under `extensions/<name>` without changing the core packages.
+
+```python
+from extensions.vision.reference_assets import ReferenceImage
+from extensions.vision.template_matching.adapters.engines import (
+    OpenCVTemplateMatchEngine,
+)
+```
+
+Extensions may depend on public interaction contracts. Core packages must not
+import extensions, and extensions are not auto-discovered or activated
+implicitly. See [`docs/architecture/extensions.md`](docs/architecture/extensions.md)
+for the plug-in dependency and composition rules.
 
 ## Out of scope
 
@@ -69,21 +92,22 @@ without becoming a dependency of this framework.
 ## Dependency direction
 
 ```text
-consumer policy / state / semantics
+consumer composition
+├── policy / state / semantics
+├── optional extensions
+│   └── extensions.vision
+└── interaction contracts
+    ├── observation
+    ├── content and targeting
+    ├── execution
+    └── optional sensing primitives
                 │
                 ▼
-interaction contracts
-├── observation
-├── content and targeting
-├── execution
-└── optional sensing primitives
-                │
-                ▼
-platform adapters
+        platform adapters
 ```
 
-Core packages must not import caller-owned decision, state, workflow, or semantic
-models.
+Core packages must not import extensions or caller-owned decision, state,
+workflow, or semantic models.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for read-only observation families and freshness rules.
