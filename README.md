@@ -41,7 +41,7 @@ for:
 - visual-to-logical target binding and execution-time target resolution;
 - lifecycle, window-management, pointer, keyboard, text, and navigation effects;
 - optional detector-input and evidence primitives;
-- explicitly opt-in extensions, including the bundled vision plug-in; and
+- stable public contracts that external extension packages may consume; and
 - platform adapters that implement these contracts.
 
 Observation snapshots describe facts acquired at a point in time. They are not
@@ -52,27 +52,21 @@ Execution success means that the native backend completed the requested attempt.
 It does not claim that an application-level goal or expected state transition was
 achieved.
 
-## Optional extensions
+## External extensions
 
-Capabilities that are useful but not required by the interaction kernel live
-under `extensions/`. They are plug-ins composed explicitly by the consuming
-application, not dependencies loaded by the core.
+Extension implementations live outside this repository. The core does not contain
+an `extensions/` package and does not vendor, auto-discover, register, version, or
+release extension implementations.
 
-The bundled `extensions.vision` plug-in contains reference-asset and template-
-matching capabilities. Consumers may import it, omit it, replace its adapters, or
-add another plug-in under `extensions/<name>` without changing the core packages.
+A consuming application may install extension packages maintained in separate
+repositories and compose them explicitly with this framework's public contracts.
+External extensions may depend on those public contracts. Core packages and tests
+in this repository must not import external extension packages, and
+extension-specific code, tests, documentation, and releases belong with the
+extension that owns them.
 
-```python
-from extensions.vision.reference_assets import ReferenceImage
-from extensions.vision.template_matching.adapters.engines import (
-    OpenCVTemplateMatchEngine,
-)
-```
-
-Extensions may depend on public interaction contracts. Core packages must not
-import extensions, and extensions are not auto-discovered or activated
-implicitly. See [`docs/architecture/extensions.md`](docs/architecture/extensions.md)
-for the plug-in dependency and composition rules.
+See [`docs/architecture/extensions.md`](docs/architecture/extensions.md) for the
+dependency and composition rules.
 
 ## Out of scope
 
@@ -94,9 +88,8 @@ without becoming a dependency of this framework.
 ```text
 consumer composition
 ├── policy / state / semantics
-├── optional extensions
-│   └── extensions.vision
-└── interaction contracts
+├── external extension packages
+└── interaction contracts from this repository
     ├── observation
     ├── content and targeting
     ├── execution
@@ -106,7 +99,7 @@ consumer composition
         platform adapters
 ```
 
-Core packages must not import extensions or caller-owned decision, state,
+Core packages must not import external extensions or caller-owned decision, state,
 workflow, or semantic models.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
