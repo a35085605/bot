@@ -3,24 +3,13 @@
 ## Purpose
 
 Extension implementations are maintained outside this repository. The interaction
-kernel publishes reusable contracts, but it does not contain an `extensions/`
-source package and does not vendor, auto-discover, register, version, or release
-extension implementations.
+kernel publishes reusable contracts, but it does not vendor, auto-discover,
+register, version, or release extension implementations.
 
 A consuming application installs the external packages it needs and wires them
-explicitly in its own composition root.
-
-```text
-consuming application
-        │
-        ├── policy / state / semantics
-        ├── separately installed extension packages
-        └── interaction-kernel contracts and adapters
-```
+explicitly in its composition root.
 
 ## Dependency rule
-
-The dependency direction is one way:
 
 ```text
 consumer composition
@@ -29,8 +18,9 @@ consumer composition
         │                         │
         │                         ▼
         └──────────────► public interaction contracts
+                          ├── target / control_channel
                           ├── observation.target_runtime
-                          ├── desktop_window.management / adb.management
+                          ├── desktop_window / adb verticals
                           ├── content and targeting
                           ├── detector_input and evidence
                           ├── execution
@@ -43,37 +33,35 @@ is absent.
 
 ## Built-in vertical packages
 
-The repository's built-in Window and ADB observation contracts follow the same
-ownership pattern expected of external channel packages:
+Window and ADB follow the same ownership pattern expected of external channels:
 
 ```text
-observation.target_runtime       platform-neutral channel kernel
-           ▲                              ▲
-           │                              │
-desktop_window.observation       adb.observation
-Window detail + inspector        ADB detail + inspector
+target / control_channel                 shared interaction kernel
+           ▲                                      ▲
+           │                                      │
+observation.target_runtime               extension observation
+           ▲                                      ▲
+           │                                      │
+desktop_window.observation       adb.observation  custom channel
 ```
 
-The generic Target Runtime core does not import those platform packages. Callers
-import platform-specific models and inspectors directly from the vertical package
-that owns them.
+Target Runtime does not import platform packages. Callers import platform-specific
+models and inspectors from the vertical package that owns them.
 
 ## Control-channel extensions
 
-An external package may add a control-channel family without editing a core enum,
-union, or platform package. It defines its own detail model, constructs a stable
-`ControlChannelKind`, and implements the generic inspection or capability ports it
-needs.
+An external package may add a channel family without editing a core enum, union,
+or platform package. It defines its detail model, constructs a stable
+`ControlChannelKind`, and implements the generic ports it needs.
 
 ```python
 from dataclasses import dataclass
 
+from control_channel import ControlChannelKind
 from observation.target_runtime import (
     ControlChannelInspector,
-    ControlChannelKind,
     ControlChannelSnapshot,
 )
-
 
 WEB_DRIVER = ControlChannelKind("webdriver")
 
@@ -88,14 +76,11 @@ inspector: ControlChannelInspector[WebDriverChannelState]
 snapshot: ControlChannelSnapshot[WebDriverChannelState]
 ```
 
-The extension owns validation that its inspector emits `WEB_DRIVER` snapshots with
-`WebDriverChannelState` details. The core validates shared readiness invariants but
-does not register, discover, or enforce extension-specific kind-to-detail pairs.
-The consuming application explicitly composes the inspector and any associated
-management or execution adapters.
+The extension owns the relationship between its kind and detail model. Target
+Runtime validates shared snapshot invariants but does not register or discover
+extension packages.
 
-A mature channel extension may use a vertical layout similar to the built-in
-packages:
+A mature extension may use:
 
 ```text
 webdriver_channel/
@@ -105,41 +90,13 @@ webdriver_channel/
 └── adapters/
 ```
 
-Only the capability families that the extension actually supports are required.
-
-## Repository ownership
-
-Extension-specific concerns belong to the repository or package that owns the
-extension, including:
-
-- implementation code and optional third-party dependencies;
-- domain models and adapter-specific ports that are not core contracts;
-- unit and integration tests;
-- reference assets or other extension-owned resources;
-- documentation, versioning, release notes, and compatibility policy; and
-- security updates and deprecation schedules.
-
-This repository may document generic integration boundaries, but it must not
-contain extension implementations or extension-specific tests.
+Only the capability families it actually supports are required.
 
 ## Composition rules
 
-External extensions should follow these rules:
-
-1. activation is explicit in the consuming application's composition root;
-2. dependencies on this framework use only public contracts;
-3. the core never imports or dynamically discovers the extension;
-4. removing or replacing the extension requires no changes to core packages;
-5. extension-to-extension dependencies are explicit and documented; and
-6. package-version compatibility is declared by the extension itself.
-
-## Migration from bundled extensions
-
-Earlier revisions of this repository bundled a vision implementation under
-`extensions.vision`, including reference-asset and template-matching capabilities.
-That implementation and its tests are no longer part of this repository.
-
-Consumers that relied on `extensions.vision.*` must move or install that
-implementation from a separately maintained package and update their imports
-before upgrading. The core does not provide a compatibility facade or an official
-external package location.
+1. Activation is explicit in the consuming application's composition root.
+2. Dependencies use only public interaction contracts.
+3. The core never imports or dynamically discovers the extension.
+4. Removing or replacing the extension requires no core changes.
+5. Extension-to-extension dependencies are explicit and documented.
+6. Package-version compatibility is declared by the extension itself.
