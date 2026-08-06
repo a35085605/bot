@@ -1,7 +1,4 @@
-"""Compatibility exports for desktop-window management commands.
-
-New code should import these commands from ``desktop_window.management``.
-"""
+"""Compatibility exports for desktop-window management commands."""
 
 from desktop_window.management.domain import (
     WindowActivation,

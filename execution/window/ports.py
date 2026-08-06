@@ -1,10 +1,9 @@
-"""Compatibility exports for window-management capability ports.
+"""Compatibility exports for desktop-window management ports.
 
-New code should import these ports from ``management.window``. The compatibility
-module remains during the staged boundary migration and owns no implementation.
+New code should import these ports from ``desktop_window.management``.
 """
 
-from management.window.ports import (
+from desktop_window.management.ports import (
     WindowActivator,
     WindowBoundsController,
     WindowMinimizer,

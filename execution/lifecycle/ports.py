@@ -2,30 +2,30 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from execution.control import ExecutionOperationResult
 from execution.lifecycle.domain import (
     TargetClose,
     TargetLaunch,
     TargetRestart,
     TargetTermination,
 )
+from native_operation import NativeOperationResult
 
 
 class TargetLauncher(Protocol):
-    def launch(self, operation: TargetLaunch) -> ExecutionOperationResult:
+    def launch(self, operation: TargetLaunch) -> NativeOperationResult:
         ...
 
 
 class TargetCloser(Protocol):
-    def close(self, operation: TargetClose) -> ExecutionOperationResult:
+    def close(self, operation: TargetClose) -> NativeOperationResult:
         ...
 
 
 class TargetTerminator(Protocol):
-    def terminate(self, operation: TargetTermination) -> ExecutionOperationResult:
+    def terminate(self, operation: TargetTermination) -> NativeOperationResult:
         ...
 
 
 class TargetRestarter(Protocol):
-    def restart(self, operation: TargetRestart) -> ExecutionOperationResult:
+    def restart(self, operation: TargetRestart) -> NativeOperationResult:
         ...
