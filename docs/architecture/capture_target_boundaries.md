@@ -2,7 +2,7 @@
 
 ## Three kinds of truth
 
-The agent keeps three time semantics separate:
+The framework keeps three time semantics separate:
 
 ```text
 Capture truth       at frame acquisition
@@ -83,9 +83,9 @@ It owns current target availability, channel identities, readiness, blockers,
 window state, ADB state, and current native geometry. It does not interpret
 pixels or decide which raster region is clean application content.
 
-A runtime snapshot may guide Decision, but it can become stale immediately.
-Execution must inspect or revalidate mutable channel and geometry conditions
-before a side effect.
+A runtime snapshot may guide caller-owned policy, but it can become stale
+immediately. Execution must inspect or revalidate mutable channel and geometry
+conditions before a side effect.
 
 ## Visual target binding joins the branches
 
