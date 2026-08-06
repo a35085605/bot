@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from observation.capture import CapturedFrame
 from observation.target_runtime import TargetRuntimeSnapshot
-from observation.temporal import TemporalSnapshot
+from temporal import TemporalSnapshot
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
@@ -48,10 +48,9 @@ class ObservationCoherence:
 class ObservationBundle:
     """Snapshots acquired for one caller-defined acquisition batch.
 
-    Observation is broader than visual capture. ``capture`` and ``runtime`` are
-    independent, optional observation families; either may be omitted when the
-    caller does not need it. ``temporal`` is the required timing anchor in the
-    current model.
+    ``capture`` and ``runtime`` are independent, optional environment observation
+    families; either may be omitted when the caller does not need it. ``temporal``
+    is the required timing anchor supplied by the independent temporal boundary.
 
     Members retain their own timestamps and are not assumed to be atomic. This
     bundle transports acquired facts; it is not durable caller state,

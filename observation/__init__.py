@@ -1,9 +1,9 @@
-"""Public contracts for independently acquired observation families.
+"""Public contracts for independently acquired environment observations.
 
-Capture, Target Runtime, and Temporal live under the ``observation`` namespace
-and remain separate read-only boundaries. ``ObservationBundle`` coordinates the
-snapshots requested for one orchestration cycle while preserving each family's
-own timestamp and domain model.
+Capture and Target Runtime live under the ``observation`` namespace and remain
+separate read-only boundaries. ``ObservationBundle`` groups snapshots requested
+for one orchestration cycle while preserving each member's own timestamp and
+domain model. Time is supplied by the independent ``temporal`` boundary.
 """
 
 from observation.capture import *
@@ -14,13 +14,10 @@ from observation.domain.models import (
 )
 from observation.target_runtime import *
 from observation.target_runtime import __all__ as _target_runtime_all
-from observation.temporal import *
-from observation.temporal import __all__ as _temporal_all
 
 __all__ = [
     *_capture_all,
     *_target_runtime_all,
-    *_temporal_all,
     "ObservationBundle",
     "ObservationCoherence",
 ]

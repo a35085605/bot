@@ -1,3 +1,4 @@
+from evidence.assembly import EvidenceAssembler
 from evidence.domain.models import (
     Evidence,
     EvidenceId,
@@ -8,6 +9,7 @@ from evidence.domain.models import (
 
 __all__ = [
     "Evidence",
+    "EvidenceAssembler",
     "EvidenceId",
     "EvidenceKind",
     "EvidenceProvenance",
