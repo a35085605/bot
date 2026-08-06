@@ -41,7 +41,9 @@ for:
 - geometry, immutable rasters, crop, resize, and coordinate transforms;
 - visual capture, capture quality, source identity, and pixel provenance;
 - clean-content extraction from raw captures;
-- target availability and Window, ADB, or future control-channel inspection;
+- generic target availability and control-channel snapshot contracts;
+- built-in Window observation under `desktop_window.observation`;
+- built-in ADB observation under `adb.observation`;
 - Window management and ADB server or transport preparation capabilities;
 - visual-to-logical target binding and execution-time target resolution;
 - lifecycle, pointer, keyboard, text, and navigation effects;
@@ -56,6 +58,27 @@ a management or execution adapter performs an external effect.
 A successful management or execution result means that the native backend
 completed the requested attempt. It does not claim that a channel became ready,
 an application-level goal succeeded, or an expected state transition occurred.
+
+## Platform observation ownership
+
+`observation.target_runtime` owns the platform-neutral target and channel kernel:
+identities, kind and readiness values, generic snapshots, generic inspectors, and
+aggregate runtime snapshots.
+
+Built-in platform detail models and specialized inspectors live in vertical
+packages:
+
+```python
+from adb.observation import AdbChannelInspector, AdbChannelState
+from desktop_window.observation import (
+    WindowChannelInspector,
+    WindowChannelState,
+)
+```
+
+Previous imports from `observation.target_runtime` remain available as lazy
+compatibility aliases. New code should use the vertical package that owns the
+platform-specific model.
 
 ## External extensions
 
@@ -95,7 +118,8 @@ consumer composition
 ├── policy / state / semantics
 ├── external extension packages
 └── interaction contracts from this repository
-    ├── observation
+    ├── observation.target_runtime (platform-neutral core)
+    ├── desktop_window.observation / adb.observation
     ├── management
     ├── content and targeting
     ├── execution
@@ -105,11 +129,15 @@ consumer composition
         platform adapters
 ```
 
-Core packages must not import external extensions or caller-owned decision, state,
-workflow, or semantic models.
+Platform-specific packages depend on the generic Target Runtime contracts. The
+Target Runtime core does not eagerly import Window, ADB, external extensions, or
+caller-owned decision, state, workflow, or semantic models.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for read-only observation families and freshness rules.
+
+See [`docs/architecture/target_runtime.md`](docs/architecture/target_runtime.md)
+for generic channel contracts, vertical platform ownership, and compatibility.
 
 See [`docs/architecture/management_capabilities.md`](docs/architecture/management_capabilities.md)
 for Window and ADB channel preparation contracts.
