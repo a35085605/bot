@@ -28,102 +28,72 @@ caller-owned policy
 ```
 
 Management never decides that an operation is required. The caller chooses
-whether to invoke a management capability, retry it, select another channel, or
-stop.
+whether to invoke a capability, retry it, select another channel, or stop.
+
+## Shared dependencies
+
+Management imports capability-neutral identities directly:
+
+```python
+from control_channel import ControlChannelId
+```
+
+It must not depend on `observation` merely to obtain target or channel nouns.
+Runtime snapshots remain an input to caller policy, not a dependency of management
+command models.
 
 ## Vertical package ownership
-
-Built-in management contracts live with the platform that owns them:
 
 ```python
 from desktop_window.management import WindowActivator, WindowMove
 from adb.management import AdbTransportPreparer, AdbTransportPreparation
 ```
 
-Window and ADB management contracts are not re-exported through a shared
-top-level management namespace. Callers import directly from the owning vertical
-package.
+Window and ADB management contracts are imported directly from their owning
+vertical package.
 
 ## Window management
 
-`desktop_window.management` owns:
+`desktop_window.management` owns activation, minimize and restore, move and
+resize, and atomic outer-bounds changes when supported. Native-attempt success is
+not a focus or geometry guarantee; callers observe Window state again.
 
-- activation;
-- minimize and restore;
-- move and resize; and
-- atomic outer-bounds changes when supported.
-
-An activation request is not a focus guarantee. A move or resize result does not
-prove that the requested geometry persisted. Callers observe
-`desktop_window.observation.WindowChannelState` again to establish current Window
-facts.
-
-Window-management commands use `native_coordinates.ScreenPoint` for
-virtual-screen positions.
+Window-management commands use `native_coordinates.ScreenPoint` for virtual-screen
+positions.
 
 ## ADB management
 
-`adb.management` owns explicit capabilities for:
-
-- starting and stopping the configured ADB server;
-- preparing one configured ADB control channel; and
-- recovering a previously configured transport.
-
-Transport operations address a stable `ControlChannelId`. An adapter may be
-configured with server endpoints, device selection, credentials, or native
-transport details outside these core operation values.
+`adb.management` owns starting and stopping the configured ADB server, preparing
+one configured control channel, and recovering a previously configured transport.
+Transport operations address a stable `control_channel.ControlChannelId`.
 
 Management does not authorize a device automatically, choose a device, or hide
-retry and fallback policy inside observation. Expected blockers remain visible
-through the next `adb.observation.AdbChannelState`.
+retry and fallback policy. Expected blockers remain visible through the next ADB
+observation.
 
 ## Native operation results
 
 Management and Execution ports return `native_operation.NativeOperationResult`.
 Success means that the backend completed its requested native attempt. It does not
-prove that a server or transport is now ready, that a Window reached its requested
-state, or that an application-level effect occurred.
-
-Callers must reacquire the owning platform observation state before relying on a
-changed condition.
+prove that infrastructure is ready or that an application-level effect occurred.
 
 ## Dependency direction
 
 ```text
-observation.target_runtime identities
+target / control_channel
+          │
+          ▼
+desktop_window.management / adb.management
+          │
+          ├── native_coordinates
+          └── native_operation
                     │
                     ▼
-desktop_window.management / adb.management
-          │                       │
-          ├── native_coordinates  │
-          └──────────┬────────────┘
-                     ▼
-              native_operation
-                     │
-                     ▼
-              platform adapters
-                     │
-                     ▼
+             platform adapters
+                    │
+                    ▼
           fresh platform observation
-
-fresh runtime + content ──────► execution preflight and input
 ```
 
 Management packages must not inspect visual semantics, choose policy, schedule
 retries, or claim application-level success.
-
-## Migration status
-
-The verticalization migration is complete:
-
-- generic target and channel contracts live under
-  `observation.target_runtime`;
-- Window observation lives under `desktop_window.observation`;
-- ADB observation lives under `adb.observation`;
-- Window management lives under `desktop_window.management`;
-- ADB server and transport management live under `adb.management`;
-- neutral native coordinates live under `native_coordinates`; and
-- neutral native-attempt results live under `native_operation`.
-
-Moving shared target and channel identities out of the observation namespace, or
-adding stronger platform-specific identity types, remains intentionally deferred.
