@@ -11,6 +11,7 @@ from adb.management import (
     AdbTransportPreparer,
     AdbTransportRecovery,
 )
+from control_channel import ControlChannelId
 from desktop_window.management import (
     WindowActivation,
     WindowActivator,
@@ -18,15 +19,11 @@ from desktop_window.management import (
 )
 from native_coordinates import ScreenPoint
 from native_operation import NativeOperationResult
-from observation.target_runtime import ControlChannelId
 
 
 class ManagementCapabilityDomainTest(unittest.TestCase):
     def test_window_management_requests_use_canonical_contracts(self) -> None:
-        self.assertEqual(
-            WindowActivation(" hwnd:42 ").window_id,
-            "hwnd:42",
-        )
+        self.assertEqual(WindowActivation(" hwnd:42 ").window_id, "hwnd:42")
         self.assertEqual(
             WindowMove("hwnd:42", ScreenPoint(-100, 20)).top_left_screen,
             ScreenPoint(-100, 20),
@@ -40,27 +37,16 @@ class ManagementCapabilityDomainTest(unittest.TestCase):
         channel_id = ControlChannelId(" adb:emulator-5554 ")
         preparation = AdbTransportPreparation(channel_id)
         recovery = AdbTransportRecovery(channel_id)
-
-        self.assertEqual(
-            preparation.channel_id,
-            ControlChannelId("adb:emulator-5554"),
-        )
+        self.assertEqual(preparation.channel_id, ControlChannelId("adb:emulator-5554"))
         self.assertEqual(recovery.channel_id, preparation.channel_id)
-
         with self.assertRaises(FrozenInstanceError):
             preparation.channel_id = ControlChannelId("other")
         with self.assertRaises(TypeError):
             AdbTransportPreparation("adb")  # type: ignore[arg-type]
 
     def test_management_ports_return_native_operation_results(self) -> None:
-        self.assertIs(
-            get_type_hints(WindowActivator.activate)["return"],
-            NativeOperationResult,
-        )
-        self.assertIs(
-            get_type_hints(AdbTransportPreparer.prepare)["return"],
-            NativeOperationResult,
-        )
+        self.assertIs(get_type_hints(WindowActivator.activate)["return"], NativeOperationResult)
+        self.assertIs(get_type_hints(AdbTransportPreparer.prepare)["return"], NativeOperationResult)
 
 
 if __name__ == "__main__":
