@@ -15,7 +15,7 @@ raw capture-space
 CapturedContent
 zero-based content-space
       │
-      ├────────► optional detector / evidence extensions
+      ├────────► optional detector-input / evidence processing
       │
       └────────► caller-owned target selection
                          │
@@ -56,8 +56,9 @@ The content boundary does not:
 - choose an execution channel; or
 - decide whether an interaction should occur.
 
-Detector crop, resize, padding, and normalization remain optional capabilities in
-`detector_input` and `imaging`.
+Detector crop, resize, padding, and normalization remain optional core
+capabilities in `detector_input` and `imaging`. Detector implementations are
+external packages supplied by the consuming application's composition root.
 
 ## Visual target association
 
