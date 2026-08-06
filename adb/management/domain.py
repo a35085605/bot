@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from observation.target_runtime import ControlChannelId
+from control_channel import ControlChannelId
 
 
 @dataclass(frozen=True, slots=True)
