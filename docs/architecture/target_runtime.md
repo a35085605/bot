@@ -2,13 +2,13 @@
 
 ## Purpose
 
-The `observation.target_runtime` package models the latest observed operational
-state of one logical automation target and its possible control channels.
+`observation.target_runtime` models the latest observed operational state of one
+logical automation target and its possible control channels.
 
-It is a read-only interaction capability. It answers whether the target is known
-to exist and what its configured channels currently report. It does not own visual
-interpretation, caller policy, channel preparation, lifecycle effects, or input
-execution.
+It is a read-only capability. It answers whether the target is known to exist and
+what its configured channels currently report. It does not own shared target or
+channel identities, caller policy, channel administration, lifecycle effects, or
+input execution.
 
 ```text
 TargetRuntimeInspector
@@ -25,23 +25,32 @@ management          execution preflight
 prepare channel     use ready channel
 ```
 
-The caller may use a runtime snapshot without acquiring pixels, for example to
-choose whether to invoke a launch capability for a missing target or a management
-capability for a blocked channel.
+## Shared kernel ownership
 
-## Core ownership
+Shared nouns are capability-neutral:
 
-Target Runtime owns only platform-neutral contracts:
+```python
+from target import TargetId
+from control_channel import (
+    ControlCapability,
+    ControlChannelId,
+    ControlChannelKind,
+    ControlChannelStatus,
+    ReadinessBlocker,
+)
+```
 
-- `TargetId`, `ControlChannelId`, and `ReadinessBlocker`;
-- `TargetAvailability`, `ControlChannelKind`, `ControlChannelStatus`, and
-  `ControlCapability`;
+These packages are depended on by observation, management, execution, platform
+verticals, and external extensions. They do not depend on those capability
+families.
+
+Target Runtime owns only observation contracts:
+
+- `TargetAvailability`;
 - `ControlChannelSnapshot[DetailsT]`;
-- `ControlChannelInspector[DetailsT]`; and
-- `TargetRuntimeSnapshot` and `TargetRuntimeInspector`.
-
-The core does not own Window handles, focus state, ADB serials, ADB device state,
-or specialized Window/ADB inspector protocols.
+- `ControlChannelInspector[DetailsT]`;
+- `TargetRuntimeSnapshot`; and
+- `TargetRuntimeInspector`.
 
 ## Target and channel observations
 
@@ -55,25 +64,15 @@ channel has its own identity, status, capabilities, blockers, and detail value.
 ## Extensible channel contracts
 
 `ControlChannelKind` is a normalized string value rather than a closed enum.
-`ControlChannelKind.DESKTOP_WINDOW` and `ControlChannelKind.ADB` identify the
-built-in channel families, while an external package may construct another stable
-kind such as `ControlChannelKind("webdriver")` without changing this repository.
+Built-in constants identify Desktop Window and ADB, while an external package may
+construct another stable kind such as `ControlChannelKind("webdriver")`.
 
-`ControlChannelSnapshot[DetailsT]` is generic over its detail model. The core
-validates only platform-neutral invariants:
-
-- channel identity and kind types;
-- readiness status, capabilities, and blockers;
-- blocker consistency with readiness status; and
-- the presence of a non-null detail value.
-
-The concrete channel package owns the relationship between a kind and its detail
-model. The core does not register kinds, discover channel packages, or maintain a
-closed kind-to-detail mapping.
+`ControlChannelSnapshot[DetailsT]` is generic over its platform-owned detail
+model. Target Runtime validates observation invariants such as blocker
+consistency, unique channel IDs, and the absence of a ready channel for a missing
+target. It does not register or discover channel packages.
 
 ## Built-in vertical packages
-
-Built-in platform observation contracts are canonical under vertical packages:
 
 ```python
 from desktop_window.observation import (
@@ -88,20 +87,11 @@ from adb.observation import (
 )
 ```
 
-`desktop_window.observation` owns desktop-window identity, process, title, client
-and outer bounds, focus relationship, minimized state, visibility,
-responsiveness, and the specialized read-only inspector protocol.
-
-`adb.observation` owns server reachability, selected device identity, device
-status, authorization and transport readiness, plus the specialized read-only
-inspector protocol.
-
-These packages depend on the generic Target Runtime contracts. Importing the core
-does not import either platform package.
+The vertical packages own platform detail models and specialized inspector
+protocols. They depend on the shared kernel and Target Runtime observation ports;
+Target Runtime does not import them.
 
 ## Read-only inspection
-
-Inspection must not intentionally change the target environment.
 
 Target Runtime and platform observation packages do not:
 
@@ -111,41 +101,17 @@ Target Runtime and platform observation packages do not:
 - authorize a device; or
 - send pointer, keyboard, text, navigation, or shell input.
 
-Window and ADB administration operations belong to
-`desktop_window.management` and `adb.management`. Application lifecycle and input
-operations belong to `execution` adapters.
-
-Current runtime facts do not belong in `CapturedFrame`. Capture retains only the
-source identity and geometry required to explain one historical raster.
-
-## Per-channel inspection ports
-
-Platform packages specialize `ControlChannelInspector[DetailsT]` for one channel
-family. External packages may do the same with their own detail model. An
-aggregate `TargetRuntimeInspector` may combine several inspectors into one
-snapshot while establishing target-level availability separately.
-
-No channels, or no ready channels, does not prove that the target is missing.
+Window and ADB administration belongs to `desktop_window.management` and
+`adb.management`. Application lifecycle and input operations belong to
+`execution` adapters.
 
 ## Freshness and execution preflight
 
-A runtime snapshot is a timestamped prior inspection. Focus, geometry, process
-existence, authorization, and transport state can change immediately afterward.
+A runtime snapshot is timestamped prior evidence, not a lock. Focus, geometry,
+process existence, authorization, and transport state can change immediately.
+Management results must be followed by fresh observation. Target resolution and
+execution adapters must revalidate mutable preconditions immediately before an
+external side effect.
 
-The consuming application may use a snapshot to select a management or execution
-operation, but the snapshot is not a lock. Management results must be followed by
-fresh observation. Target resolution and execution adapters must revalidate
-mutable preconditions immediately before an external side effect.
-
-The framework reports observed state and native operation results. The caller
-owns action selection, retry/fallback policy, and application-level success
-criteria.
-
-See [Observation boundaries](observation_boundaries.md) for the relationship
-between Capture, Target Runtime, Temporal, and caller-owned acquisition logic.
-
-See [Management capabilities](management_capabilities.md) for Window and ADB
-administration contracts.
-
-See [External extensions](extensions.md) for package ownership and explicit
-composition rules for additional channel families.
+The caller owns action selection, retry and fallback policy, and application-level
+success criteria.
