@@ -12,19 +12,7 @@ from observation.domain.models import (
     ObservationBundle,
     ObservationCoherence,
 )
-from observation.target_runtime import (
-    ControlCapability,
-    ControlChannelId,
-    ControlChannelInspector,
-    ControlChannelKind,
-    ControlChannelSnapshot,
-    ControlChannelStatus,
-    ReadinessBlocker,
-    TargetAvailability,
-    TargetId,
-    TargetRuntimeInspector,
-    TargetRuntimeSnapshot,
-)
+from observation.target_runtime import *
 from observation.target_runtime import __all__ as _target_runtime_all
 from observation.temporal import *
 from observation.temporal import __all__ as _temporal_all
