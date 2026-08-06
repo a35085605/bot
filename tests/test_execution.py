@@ -4,6 +4,12 @@ from datetime import datetime, timezone
 import unittest
 
 from content import ContentFrame, ContentPlacementInCapture
+from control_channel import (
+    ControlCapability,
+    ControlChannelId,
+    ControlChannelKind,
+    ControlChannelStatus,
+)
 from desktop_window.observation import FocusStatus, WindowChannelState
 from execution import (
     ContentPointTarget,
@@ -22,15 +28,11 @@ from observation.capture import (
     FrameInfo,
 )
 from observation.target_runtime import (
-    ControlCapability,
-    ControlChannelId,
-    ControlChannelKind,
     ControlChannelSnapshot,
-    ControlChannelStatus,
     TargetAvailability,
-    TargetId,
     TargetRuntimeSnapshot,
 )
+from target import TargetId
 
 
 class FakeDesktopResolver:
@@ -43,27 +45,14 @@ class FakeDesktopResolver:
         channel_id: ControlChannelId,
     ) -> ResolvedExecutionTarget[ScreenPoint] | ExecutionTargetUnavailable:
         if target.frame_id != content.capture.frame_id:
-            return ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.FRAME_MISMATCH
-            )
+            return ExecutionTargetUnavailable(ExecutionTargetFailureReason.FRAME_MISMATCH)
         if target.source_id != content.capture.source_id:
-            return ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.SOURCE_MISMATCH
-            )
-        if not content.bounds_content.contains_point(
-            target.point_content.x,
-            target.point_content.y,
-        ):
-            return ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.TARGET_OUTSIDE_CONTENT
-            )
-
+            return ExecutionTargetUnavailable(ExecutionTargetFailureReason.SOURCE_MISMATCH)
+        if not content.bounds_content.contains_point(target.point_content.x, target.point_content.y):
+            return ExecutionTargetUnavailable(ExecutionTargetFailureReason.TARGET_OUTSIDE_CONTENT)
         channel = runtime.channel(channel_id)
         if channel is None or channel.status is not ControlChannelStatus.READY:
-            return ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.CHANNEL_NOT_READY
-            )
-
+            return ExecutionTargetUnavailable(ExecutionTargetFailureReason.CHANNEL_NOT_READY)
         capture_point = content.content_point_to_capture(target.point_content)
         screen_point = content.capture.root_point_to_screen(capture_point)
         return ResolvedExecutionTarget(
@@ -71,10 +60,7 @@ class FakeDesktopResolver:
             source_id=target.source_id,
             target_id=runtime.target_id,
             channel_id=channel_id,
-            point_native=ScreenPoint(
-                x=screen_point.x,
-                y=screen_point.y,
-            ),
+            point_native=ScreenPoint(x=screen_point.x, y=screen_point.y),
             resolved_at=runtime.observed_at,
         )
 
@@ -84,14 +70,7 @@ class ExecutionBoundaryTest(unittest.TestCase):
         capture = FrameInfo(
             frame_id=FrameId(9),
             stream_id=CaptureStreamId("session-1"),
-            captured_at=datetime(
-                2026,
-                7,
-                29,
-                12,
-                0,
-                tzinfo=timezone.utc,
-            ),
+            captured_at=datetime(2026, 7, 29, 12, 0, tzinfo=timezone.utc),
             root_bounds=Rect(x=0, y=0, width=1920, height=1200),
             source_id="game-window",
             surface=None,
@@ -106,12 +85,7 @@ class ExecutionBoundaryTest(unittest.TestCase):
         return ContentFrame(
             capture=capture,
             placement=ContentPlacementInCapture(
-                bounds_capture=Rect(
-                    x=160,
-                    y=120,
-                    width=1600,
-                    height=900,
-                )
+                bounds_capture=Rect(x=160, y=120, width=1600, height=900)
             ),
         )
 
@@ -120,18 +94,9 @@ class ExecutionBoundaryTest(unittest.TestCase):
         *,
         status: ControlChannelStatus = ControlChannelStatus.READY,
     ) -> TargetRuntimeSnapshot:
-        blockers = () if status is ControlChannelStatus.READY else ()
         return TargetRuntimeSnapshot(
             target_id=TargetId("game"),
-            observed_at=datetime(
-                2026,
-                7,
-                29,
-                12,
-                0,
-                1,
-                tzinfo=timezone.utc,
-            ),
+            observed_at=datetime(2026, 7, 29, 12, 0, 1, tzinfo=timezone.utc),
             availability=TargetAvailability.AVAILABLE,
             inspector_id="test.runtime",
             channels=(
@@ -144,25 +109,14 @@ class ExecutionBoundaryTest(unittest.TestCase):
                         foreground_window_id="hwnd:42",
                         process_id=1234,
                         title="Example Game",
-                        client_bounds_screen=Rect(
-                            x=100,
-                            y=200,
-                            width=1920,
-                            height=1200,
-                        ),
-                        window_bounds_screen=Rect(
-                            x=90,
-                            y=170,
-                            width=1940,
-                            height=1240,
-                        ),
+                        client_bounds_screen=Rect(x=100, y=200, width=1920, height=1200),
+                        window_bounds_screen=Rect(x=90, y=170, width=1940, height=1240),
                         focus=FocusStatus.TARGET,
                         minimized=False,
                         visible=True,
                         responsive=True,
                     ),
                     capabilities=frozenset({ControlCapability.POINTER}),
-                    blockers=blockers,
                 ),
             ),
         )
@@ -174,22 +128,18 @@ class ExecutionBoundaryTest(unittest.TestCase):
             source_id=content.capture.source_id,
             point_content=Point(x=10, y=20),
         )
-
         result = FakeDesktopResolver().resolve_point(
             target=target,
             content=content,
             runtime=self._runtime(),
             channel_id=ControlChannelId("window"),
         )
-
         self.assertIsInstance(result, ResolvedExecutionTarget)
         assert isinstance(result, ResolvedExecutionTarget)
         self.assertEqual(result.point_native, ScreenPoint(x=270, y=340))
 
     def test_runtime_owns_operational_window_metadata(self) -> None:
-        runtime = self._runtime()
-        channel = runtime.channel(ControlChannelId("window"))
-
+        channel = self._runtime().channel(ControlChannelId("window"))
         self.assertIsNotNone(channel)
         assert channel is not None
         details = channel.details
@@ -210,13 +160,7 @@ class ExecutionBoundaryTest(unittest.TestCase):
             runtime=self._runtime(),
             channel_id=ControlChannelId("window"),
         )
-
-        self.assertEqual(
-            result,
-            ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.FRAME_MISMATCH
-            ),
-        )
+        self.assertEqual(result, ExecutionTargetUnavailable(ExecutionTargetFailureReason.FRAME_MISMATCH))
 
     def test_resolver_rejects_target_outside_content(self) -> None:
         content = self._content()
@@ -230,13 +174,7 @@ class ExecutionBoundaryTest(unittest.TestCase):
             runtime=self._runtime(),
             channel_id=ControlChannelId("window"),
         )
-
-        self.assertEqual(
-            result,
-            ExecutionTargetUnavailable(
-                ExecutionTargetFailureReason.TARGET_OUTSIDE_CONTENT
-            ),
-        )
+        self.assertEqual(result, ExecutionTargetUnavailable(ExecutionTargetFailureReason.TARGET_OUTSIDE_CONTENT))
 
 
 if __name__ == "__main__":

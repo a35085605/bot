@@ -3,30 +3,31 @@ from __future__ import annotations
 from enum import Enum
 from typing import ClassVar
 
-from observation.target_runtime.domain.identities import (
-    normalize_non_empty_text,
-)
 
-
-class TargetAvailability(str, Enum):
-    UNKNOWN = "unknown"
-    MISSING = "missing"
-    AVAILABLE = "available"
+def _normalize_non_empty_text(
+    value: object,
+    *,
+    field_name: str,
+) -> str:
+    if not isinstance(value, str):
+        raise TypeError(
+            f"{field_name} must be a string, "
+            f"got {type(value).__name__}"
+        )
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} cannot be empty")
+    return normalized
 
 
 class ControlChannelKind(str):
-    """Extensible stable identifier for one control-channel family.
-
-    Built-in Window and ADB constants identify the built-in channel families.
-    External packages may construct additional normalized values without
-    modifying the interaction kernel.
-    """
+    """Extensible stable identifier for one control-channel family."""
 
     DESKTOP_WINDOW: ClassVar[ControlChannelKind]
     ADB: ClassVar[ControlChannelKind]
 
     def __new__(cls, value: object) -> ControlChannelKind:
-        normalized = normalize_non_empty_text(
+        normalized = _normalize_non_empty_text(
             value,
             field_name="control channel kind",
         )
@@ -34,8 +35,6 @@ class ControlChannelKind(str):
 
     @property
     def value(self) -> str:
-        """Return the normalized value for previous Enum-style callers."""
-
         return str(self)
 
 
@@ -61,5 +60,4 @@ __all__ = [
     "ControlCapability",
     "ControlChannelKind",
     "ControlChannelStatus",
-    "TargetAvailability",
 ]

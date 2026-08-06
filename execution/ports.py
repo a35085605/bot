@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from content import ContentFrame
+from control_channel import ControlChannelId
 from execution.domain import (
     ContentPointTarget,
     ExecutionTargetResolution,
 )
-from observation.target_runtime import ControlChannelId, TargetRuntimeSnapshot
+from observation.target_runtime import TargetRuntimeSnapshot
 from visual_target_binding import VisualTargetBinding
 
 

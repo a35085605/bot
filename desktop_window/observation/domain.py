@@ -5,7 +5,24 @@ from enum import Enum
 from numbers import Integral
 
 from geometry.rect import Rect
-from observation.target_runtime.domain.identities import normalize_optional_text
+
+
+def _normalize_optional_text(
+    value: object,
+    *,
+    field_name: str,
+) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise TypeError(
+            f"{field_name} must be a string, "
+            f"got {type(value).__name__}"
+        )
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} cannot be empty")
+    return normalized
 
 
 class FocusStatus(str, Enum):
@@ -65,16 +82,16 @@ class WindowChannelState:
         if not isinstance(self.focus, FocusStatus):
             raise TypeError("window focus must be FocusStatus")
 
-        window_id = normalize_optional_text(
+        window_id = _normalize_optional_text(
             self.window_id,
             field_name="window id",
         )
-        foreground_window_id = normalize_optional_text(
+        foreground_window_id = _normalize_optional_text(
             self.foreground_window_id,
             field_name="foreground window id",
         )
         process_id = _validate_optional_process_id(self.process_id)
-        title = normalize_optional_text(
+        title = _normalize_optional_text(
             self.title,
             field_name="window title",
         )

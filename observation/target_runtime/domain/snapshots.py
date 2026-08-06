@@ -3,17 +3,30 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from observation.target_runtime.domain.channels import ControlChannelSnapshot
-from observation.target_runtime.domain.identities import (
-    ControlChannelId,
-    TargetId,
-    normalize_non_empty_text,
-)
-from observation.target_runtime.domain.readiness import (
+from control_channel import (
     ControlCapability,
+    ControlChannelId,
     ControlChannelStatus,
-    TargetAvailability,
 )
+from observation.target_runtime.domain.availability import TargetAvailability
+from observation.target_runtime.domain.channels import ControlChannelSnapshot
+from target import TargetId
+
+
+def _normalize_non_empty_text(
+    value: object,
+    *,
+    field_name: str,
+) -> str:
+    if not isinstance(value, str):
+        raise TypeError(
+            f"{field_name} must be a string, "
+            f"got {type(value).__name__}"
+        )
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} cannot be empty")
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,7 +63,7 @@ class TargetRuntimeSnapshot:
         if not isinstance(self.channels, tuple):
             raise TypeError("channels must be a tuple")
 
-        inspector_id = normalize_non_empty_text(
+        inspector_id = _normalize_non_empty_text(
             self.inspector_id,
             field_name="runtime inspector id",
         )

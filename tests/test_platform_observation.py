@@ -11,49 +11,39 @@ from adb.observation import (
     AdbChannelState,
     AdbDeviceStatus,
 )
+from control_channel import (
+    ControlChannelId,
+    ControlChannelKind,
+    ControlChannelStatus,
+)
 from desktop_window.observation import (
     FocusStatus,
     WindowChannelInspector,
     WindowChannelState,
 )
 from observation.target_runtime import (
-    ControlChannelId,
-    ControlChannelKind,
     ControlChannelSnapshot,
-    ControlChannelStatus,
     TargetAvailability,
-    TargetId,
     TargetRuntimeSnapshot,
 )
+from target import TargetId
 
 
 class StaticWindowInspector:
-    def __init__(
-        self,
-        snapshot: ControlChannelSnapshot[WindowChannelState],
-    ) -> None:
+    def __init__(self, snapshot: ControlChannelSnapshot[WindowChannelState]) -> None:
         self._snapshot = snapshot
 
-    def inspect(
-        self,
-        target_id: TargetId,
-    ) -> ControlChannelSnapshot[WindowChannelState]:
+    def inspect(self, target_id: TargetId) -> ControlChannelSnapshot[WindowChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
 
 
 class StaticAdbInspector:
-    def __init__(
-        self,
-        snapshot: ControlChannelSnapshot[AdbChannelState],
-    ) -> None:
+    def __init__(self, snapshot: ControlChannelSnapshot[AdbChannelState]) -> None:
         self._snapshot = snapshot
 
-    def inspect(
-        self,
-        target_id: TargetId,
-    ) -> ControlChannelSnapshot[AdbChannelState]:
+    def inspect(self, target_id: TargetId) -> ControlChannelSnapshot[AdbChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
@@ -105,11 +95,15 @@ class PlatformObservationTest(unittest.TestCase):
         repository_root = Path(__file__).resolve().parents[1]
         script = """
 import sys
+import control_channel
 import observation.target_runtime
+import target
 assert 'adb.observation.domain' not in sys.modules
 assert 'adb.observation.ports' not in sys.modules
 assert 'desktop_window.observation.domain' not in sys.modules
 assert 'desktop_window.observation.ports' not in sys.modules
+assert not hasattr(observation.target_runtime, 'TargetId')
+assert not hasattr(observation.target_runtime, 'ControlChannelId')
 """
         subprocess.run(
             [sys.executable, "-c", script],

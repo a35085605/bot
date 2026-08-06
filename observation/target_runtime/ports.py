@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from observation.target_runtime.domain.channels import ControlChannelSnapshot
-from observation.target_runtime.domain.identities import TargetId
 from observation.target_runtime.domain.snapshots import TargetRuntimeSnapshot
+from target import TargetId
 
 
 ControlChannelStateT_co = TypeVar(

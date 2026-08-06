@@ -38,10 +38,13 @@ attempt result returned to the caller
 The repository provides reusable capability contracts and supporting data models
 for:
 
+- logical target identity under `target`;
+- shared control-channel identity, kind, readiness, blocker, and capability
+  values under `control_channel`;
 - geometry, immutable rasters, crop, resize, and coordinate transforms;
 - visual capture, capture quality, source identity, and pixel provenance;
 - clean-content extraction from raw captures;
-- generic target availability and control-channel snapshot contracts;
+- target availability and control-channel observation snapshots;
 - built-in Window observation under `desktop_window.observation`;
 - built-in ADB observation under `adb.observation`;
 - Window management under `desktop_window.management`;
@@ -60,11 +63,27 @@ A successful management or execution result means that the native backend
 completed the requested attempt. It does not claim that a channel became ready,
 an application-level goal succeeded, or an expected state transition occurred.
 
-## Platform observation ownership
+## Shared interaction kernel
 
-`observation.target_runtime` owns the platform-neutral target and channel kernel:
-identities, kind and readiness values, generic snapshots, generic inspectors, and
-aggregate runtime snapshots.
+Shared nouns do not belong to a capability family:
+
+```python
+from target import TargetId
+from control_channel import (
+    ControlCapability,
+    ControlChannelId,
+    ControlChannelKind,
+    ControlChannelStatus,
+    ReadinessBlocker,
+)
+```
+
+`observation.target_runtime` owns only read-only runtime contracts:
+`TargetAvailability`, `ControlChannelSnapshot`, `TargetRuntimeSnapshot`, and their
+inspector ports. Management and execution therefore depend on the shared kernel,
+not on observation merely to obtain identities or channel vocabulary.
+
+## Platform observation ownership
 
 Built-in platform detail models and specialized inspectors live in vertical
 packages:
@@ -78,7 +97,7 @@ from desktop_window.observation import (
 ```
 
 Platform-specific contracts are imported from the vertical package that owns the
-model. The Target Runtime core exposes only platform-neutral contracts.
+model. Target Runtime does not import Window or ADB packages.
 
 ## External extensions
 
@@ -88,10 +107,8 @@ release extension implementations.
 
 A consuming application may install extension packages maintained in separate
 repositories and compose them explicitly with this framework's public contracts.
-External extensions may depend on those public contracts. Core packages and tests
-in this repository must not import external extension packages, and
-extension-specific code, tests, documentation, and releases belong with the
-extension that owns them.
+Core packages and tests in this repository must not import external extension
+packages.
 
 See [`docs/architecture/extensions.md`](docs/architecture/extensions.md) for the
 dependency and composition rules.
@@ -118,7 +135,8 @@ consumer composition
 ├── policy / state / semantics
 ├── external extension packages
 └── interaction contracts from this repository
-    ├── observation.target_runtime (platform-neutral core)
+    ├── target / control_channel
+    ├── observation.target_runtime
     ├── desktop_window.observation / adb.observation
     ├── desktop_window.management / adb.management
     ├── content and targeting
@@ -129,15 +147,16 @@ consumer composition
         platform adapters
 ```
 
-Platform-specific packages depend on the generic Target Runtime contracts. The
-Target Runtime core does not import Window, ADB, external extensions, or
-caller-owned decision, state, workflow, or semantic models.
+Observation, management, execution, platform packages, and extensions may depend
+on `target` and `control_channel`. Those shared packages do not depend on any
+capability family or platform package.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for read-only observation families and freshness rules.
 
 See [`docs/architecture/target_runtime.md`](docs/architecture/target_runtime.md)
-for generic channel contracts and vertical platform ownership.
+for shared-kernel ownership, generic channel snapshots, and vertical platform
+observation.
 
 See [`docs/architecture/management_capabilities.md`](docs/architecture/management_capabilities.md)
 for Window and ADB channel administration contracts.

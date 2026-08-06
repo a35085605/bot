@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from observation.target_runtime import TargetId
+from target import TargetId
 
 
 def _require_target_id(value: object) -> TargetId:

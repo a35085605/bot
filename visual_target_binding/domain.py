@@ -7,9 +7,10 @@ import math
 from numbers import Real
 from typing import TypeAlias
 
+from control_channel import ControlChannelId
 from geometry.rect import Rect
 from observation.capture import FrameId
-from observation.target_runtime import ControlChannelId, TargetId
+from target import TargetId
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
@@ -54,13 +55,7 @@ class VisualTargetBindingBasis(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class VisualTargetBinding:
-    """Historical association between visual content and a logical target.
-
-    The binding records why one content region was associated with one target at
-    ``established_at``. It does not claim that the target or channel still exists,
-    remains ready, or retains compatible geometry. Execution must inspect and
-    revalidate current Target Runtime state before a side effect.
-    """
+    """Historical association between visual content and a logical target."""
 
     frame_id: FrameId
     source_id: str

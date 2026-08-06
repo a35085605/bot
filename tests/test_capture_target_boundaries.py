@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import unittest
 
 from content import ContentFrame, ContentPlacementInCapture
+from control_channel import ControlChannelId
 from geometry.point import Point
 from geometry.rect import Rect
 from observation.capture import (
@@ -15,7 +16,7 @@ from observation.capture import (
     FrameId,
     FrameInfo,
 )
-from observation.target_runtime import ControlChannelId, TargetId
+from target import TargetId
 from visual_target_binding import (
     VisualTargetBinding,
     VisualTargetBindingBasis,
@@ -27,14 +28,7 @@ class CaptureTargetBoundaryTest(unittest.TestCase):
         return FrameInfo(
             frame_id=FrameId(11),
             stream_id=CaptureStreamId("adb-session"),
-            captured_at=datetime(
-                2026,
-                8,
-                1,
-                12,
-                0,
-                tzinfo=timezone.utc,
-            ),
+            captured_at=datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc),
             root_bounds=Rect(x=0, y=0, width=1080, height=1920),
             source_id="adb:emulator-5554/display:0",
             surface=DeviceDisplaySurface(
@@ -57,7 +51,6 @@ class CaptureTargetBoundaryTest(unittest.TestCase):
 
     def test_adb_capture_does_not_claim_host_screen_coordinates(self) -> None:
         frame = self._adb_frame()
-
         self.assertIsNone(frame.capture_bounds_screen)
         self.assertEqual(
             frame.root_point_to_device(
@@ -76,7 +69,6 @@ class CaptureTargetBoundaryTest(unittest.TestCase):
                 bounds_capture=Rect(x=0, y=80, width=1080, height=1760),
             ),
         )
-
         self.assertEqual(
             content.frame.root_point_to_device(
                 Point(x=100, y=200),
@@ -92,21 +84,12 @@ class CaptureTargetBoundaryTest(unittest.TestCase):
             source_id="adb:emulator-5554/display:0",
             content_bounds=Rect(x=0, y=0, width=1080, height=1760),
             target_id=TargetId("game"),
-            established_at=datetime(
-                2026,
-                8,
-                1,
-                12,
-                0,
-                1,
-                tzinfo=timezone.utc,
-            ),
+            established_at=datetime(2026, 8, 1, 12, 0, 1, tzinfo=timezone.utc),
             basis=VisualTargetBindingBasis.DEVICE_DISPLAY_IDENTITY,
             confidence=1.0,
             channel_id=ControlChannelId("adb"),
             capture_surface_id="emulator-5554/display:0",
         )
-
         self.assertEqual(binding.target_id, TargetId("game"))
         self.assertEqual(binding.channel_id, ControlChannelId("adb"))
         self.assertFalse(hasattr(binding, "channel_ready"))

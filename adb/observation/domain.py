@@ -3,7 +3,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from observation.target_runtime.domain.identities import normalize_optional_text
+
+def _normalize_optional_text(
+    value: object,
+    *,
+    field_name: str,
+) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise TypeError(
+            f"{field_name} must be a string, "
+            f"got {type(value).__name__}"
+        )
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} cannot be empty")
+    return normalized
 
 
 class AdbDeviceStatus(str, Enum):
@@ -37,7 +53,7 @@ class AdbChannelState:
         if not isinstance(self.device_status, AdbDeviceStatus):
             raise TypeError("ADB device status must be AdbDeviceStatus")
 
-        serial = normalize_optional_text(
+        serial = _normalize_optional_text(
             self.serial,
             field_name="ADB device serial",
         )

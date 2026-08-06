@@ -9,23 +9,25 @@ from adb.observation import (
     AdbChannelState,
     AdbDeviceStatus,
 )
+from control_channel import (
+    ControlCapability,
+    ControlChannelId,
+    ControlChannelKind,
+    ControlChannelStatus,
+    ReadinessBlocker,
+)
 from desktop_window.observation import (
     FocusStatus,
     WindowChannelInspector,
     WindowChannelState,
 )
 from observation.target_runtime import (
-    ControlCapability,
-    ControlChannelId,
     ControlChannelInspector,
-    ControlChannelKind,
     ControlChannelSnapshot,
-    ControlChannelStatus,
-    ReadinessBlocker,
     TargetAvailability,
-    TargetId,
     TargetRuntimeSnapshot,
 )
+from target import TargetId
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,68 +36,42 @@ class WebDriverChannelState:
 
 
 class StaticWindowChannelInspector:
-    def __init__(
-        self,
-        snapshot: ControlChannelSnapshot[WindowChannelState],
-    ) -> None:
+    def __init__(self, snapshot: ControlChannelSnapshot[WindowChannelState]) -> None:
         self._snapshot = snapshot
 
-    def inspect(
-        self,
-        target_id: TargetId,
-    ) -> ControlChannelSnapshot[WindowChannelState]:
+    def inspect(self, target_id: TargetId) -> ControlChannelSnapshot[WindowChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
 
 
 class StaticAdbChannelInspector:
-    def __init__(
-        self,
-        snapshot: ControlChannelSnapshot[AdbChannelState],
-    ) -> None:
+    def __init__(self, snapshot: ControlChannelSnapshot[AdbChannelState]) -> None:
         self._snapshot = snapshot
 
-    def inspect(
-        self,
-        target_id: TargetId,
-    ) -> ControlChannelSnapshot[AdbChannelState]:
+    def inspect(self, target_id: TargetId) -> ControlChannelSnapshot[AdbChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
 
 
 class StaticWebDriverChannelInspector:
-    def __init__(
-        self,
-        snapshot: ControlChannelSnapshot[WebDriverChannelState],
-    ) -> None:
+    def __init__(self, snapshot: ControlChannelSnapshot[WebDriverChannelState]) -> None:
         self._snapshot = snapshot
 
-    def inspect(
-        self,
-        target_id: TargetId,
-    ) -> ControlChannelSnapshot[WebDriverChannelState]:
+    def inspect(self, target_id: TargetId) -> ControlChannelSnapshot[WebDriverChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
 
 
 class TargetRuntimeTest(unittest.TestCase):
-    def _window_channel(
-        self,
-    ) -> ControlChannelSnapshot[WindowChannelState]:
+    def _window_channel(self) -> ControlChannelSnapshot[WindowChannelState]:
         return ControlChannelSnapshot(
             channel_id=ControlChannelId(" desktop "),
             kind=ControlChannelKind.DESKTOP_WINDOW,
             status=ControlChannelStatus.READY,
-            capabilities=frozenset(
-                {
-                    ControlCapability.POINTER,
-                    ControlCapability.KEYBOARD,
-                    ControlCapability.TEXT,
-                }
-            ),
+            capabilities=frozenset({ControlCapability.POINTER, ControlCapability.KEYBOARD, ControlCapability.TEXT}),
             details=WindowChannelState(
                 window_id=" hwnd:42 ",
                 foreground_window_id=" hwnd:42 ",
@@ -106,20 +82,12 @@ class TargetRuntimeTest(unittest.TestCase):
             ),
         )
 
-    def _adb_channel(
-        self,
-    ) -> ControlChannelSnapshot[AdbChannelState]:
+    def _adb_channel(self) -> ControlChannelSnapshot[AdbChannelState]:
         return ControlChannelSnapshot(
             channel_id=ControlChannelId("adb:emulator-5554"),
             kind=ControlChannelKind.ADB,
             status=ControlChannelStatus.BLOCKED,
-            capabilities=frozenset(
-                {
-                    ControlCapability.POINTER,
-                    ControlCapability.KEYBOARD,
-                    ControlCapability.BACK,
-                }
-            ),
+            capabilities=frozenset({ControlCapability.POINTER, ControlCapability.KEYBOARD, ControlCapability.BACK}),
             blockers=(ReadinessBlocker("adb.unauthorized"),),
             details=AdbChannelState(
                 serial=" emulator-5554 ",
@@ -129,9 +97,7 @@ class TargetRuntimeTest(unittest.TestCase):
             ),
         )
 
-    def test_runtime_snapshot_normalizes_identity_and_queries_channels(
-        self,
-    ) -> None:
+    def test_runtime_snapshot_normalizes_identity_and_queries_channels(self) -> None:
         window = self._window_channel()
         adb = self._adb_channel()
         snapshot = TargetRuntimeSnapshot(
@@ -141,16 +107,12 @@ class TargetRuntimeTest(unittest.TestCase):
             inspector_id=" combined-runtime ",
             channels=(window, adb),
         )
-
         self.assertEqual(snapshot.target_id.value, "emulator")
         self.assertEqual(snapshot.inspector_id, "combined-runtime")
         self.assertEqual(window.channel_id.value, "desktop")
         self.assertEqual(window.details.window_id, "hwnd:42")
         self.assertEqual(adb.details.serial, "emulator-5554")
-        self.assertEqual(
-            snapshot.channel(ControlChannelId("desktop")),
-            window,
-        )
+        self.assertEqual(snapshot.channel(ControlChannelId("desktop")), window)
         self.assertEqual(snapshot.ready_channels, (window,))
         self.assertTrue(snapshot.supports(ControlCapability.POINTER))
         self.assertTrue(snapshot.supports(ControlCapability.TEXT))
@@ -158,37 +120,19 @@ class TargetRuntimeTest(unittest.TestCase):
 
     def test_per_channel_inspectors_compose_runtime_channels(self) -> None:
         target_id = TargetId("emulator")
-        window_inspector: WindowChannelInspector = (
-            StaticWindowChannelInspector(self._window_channel())
-        )
-        adb_inspector: AdbChannelInspector = StaticAdbChannelInspector(
-            self._adb_channel()
-        )
-
-        channels = (
-            window_inspector.inspect(target_id),
-            adb_inspector.inspect(target_id),
-        )
+        window_inspector: WindowChannelInspector = StaticWindowChannelInspector(self._window_channel())
+        adb_inspector: AdbChannelInspector = StaticAdbChannelInspector(self._adb_channel())
         snapshot = TargetRuntimeSnapshot(
             target_id=target_id,
             observed_at=datetime(2026, 7, 31, tzinfo=timezone.utc),
             availability=TargetAvailability.AVAILABLE,
             inspector_id="composite",
-            channels=channels,
+            channels=(window_inspector.inspect(target_id), adb_inspector.inspect(target_id)),
         )
+        self.assertIsInstance(snapshot.channels[0].details, WindowChannelState)
+        self.assertIsInstance(snapshot.channels[1].details, AdbChannelState)
 
-        self.assertIsInstance(
-            snapshot.channels[0].details,
-            WindowChannelState,
-        )
-        self.assertIsInstance(
-            snapshot.channels[1].details,
-            AdbChannelState,
-        )
-
-    def test_external_channel_kind_and_details_require_no_core_change(
-        self,
-    ) -> None:
+    def test_external_channel_kind_and_details_require_no_core_change(self) -> None:
         channel = ControlChannelSnapshot(
             channel_id=ControlChannelId("webdriver:primary"),
             kind=ControlChannelKind(" webdriver "),
@@ -196,61 +140,28 @@ class TargetRuntimeTest(unittest.TestCase):
             capabilities=frozenset({ControlCapability.POINTER}),
             details=WebDriverChannelState(session_id="session-1"),
         )
-        inspector: ControlChannelInspector[WebDriverChannelState] = (
-            StaticWebDriverChannelInspector(channel)
-        )
-
+        inspector: ControlChannelInspector[WebDriverChannelState] = StaticWebDriverChannelInspector(channel)
         observed = inspector.inspect(TargetId("browser"))
-
         self.assertEqual(observed.kind.value, "webdriver")
         self.assertEqual(observed.details.session_id, "session-1")
         self.assertEqual(ControlChannelKind.ADB, "adb")
-        self.assertEqual(
-            ControlChannelKind(" desktop_window "),
-            ControlChannelKind.DESKTOP_WINDOW,
-        )
-
+        self.assertEqual(ControlChannelKind(" desktop_window "), ControlChannelKind.DESKTOP_WINDOW)
         with self.assertRaises(ValueError):
             ControlChannelKind("  ")
 
     def test_window_focus_tracks_target_and_foreground_identity(self) -> None:
         with self.assertRaises(ValueError):
-            WindowChannelState(
-                window_id="hwnd:42",
-                foreground_window_id="hwnd:99",
-                focus=FocusStatus.TARGET,
-            )
-
+            WindowChannelState(window_id="hwnd:42", foreground_window_id="hwnd:99", focus=FocusStatus.TARGET)
         with self.assertRaises(ValueError):
-            WindowChannelState(
-                window_id="hwnd:42",
-                foreground_window_id="hwnd:42",
-                focus=FocusStatus.OTHER,
-            )
-
+            WindowChannelState(window_id="hwnd:42", foreground_window_id="hwnd:42", focus=FocusStatus.OTHER)
         with self.assertRaises(ValueError):
-            WindowChannelState(
-                window_id="hwnd:42",
-                foreground_window_id="hwnd:42",
-                focus=FocusStatus.TARGET,
-                minimized=True,
-            )
+            WindowChannelState(window_id="hwnd:42", foreground_window_id="hwnd:42", focus=FocusStatus.TARGET, minimized=True)
 
     def test_adb_transport_readiness_requires_online_device(self) -> None:
         with self.assertRaises(ValueError):
-            AdbChannelState(
-                serial="emulator-5554",
-                server_reachable=True,
-                device_status=AdbDeviceStatus.UNAUTHORIZED,
-                transport_ready=True,
-            )
-
+            AdbChannelState(serial="emulator-5554", server_reachable=True, device_status=AdbDeviceStatus.UNAUTHORIZED, transport_ready=True)
         with self.assertRaises(ValueError):
-            AdbChannelState(
-                server_reachable=True,
-                device_status=AdbDeviceStatus.ONLINE,
-                transport_ready=True,
-            )
+            AdbChannelState(server_reachable=True, device_status=AdbDeviceStatus.ONLINE, transport_ready=True)
 
     def test_channel_status_invariants_are_platform_neutral(self) -> None:
         with self.assertRaises(ValueError):
@@ -261,7 +172,6 @@ class TargetRuntimeTest(unittest.TestCase):
                 blockers=(ReadinessBlocker("window.not_foreground"),),
                 details=WindowChannelState(),
             )
-
         with self.assertRaises(ValueError):
             ControlChannelSnapshot(
                 channel_id=ControlChannelId("adb"),
@@ -269,7 +179,6 @@ class TargetRuntimeTest(unittest.TestCase):
                 status=ControlChannelStatus.BLOCKED,
                 details=AdbChannelState(),
             )
-
         with self.assertRaises(TypeError):
             ControlChannelSnapshot(
                 channel_id=ControlChannelId("custom"),
@@ -277,7 +186,6 @@ class TargetRuntimeTest(unittest.TestCase):
                 status=ControlChannelStatus.UNKNOWN,
                 details=WebDriverChannelState(session_id="session-1"),
             )
-
         with self.assertRaises(TypeError):
             ControlChannelSnapshot(
                 channel_id=ControlChannelId("custom"),
@@ -286,9 +194,7 @@ class TargetRuntimeTest(unittest.TestCase):
                 details=None,
             )
 
-    def test_snapshot_rejects_duplicate_channels_and_missing_ready_target(
-        self,
-    ) -> None:
+    def test_snapshot_rejects_duplicate_channels_and_missing_ready_target(self) -> None:
         window = self._window_channel()
         with self.assertRaises(ValueError):
             TargetRuntimeSnapshot(
@@ -298,7 +204,6 @@ class TargetRuntimeTest(unittest.TestCase):
                 inspector_id="test",
                 channels=(window, window),
             )
-
         with self.assertRaises(ValueError):
             TargetRuntimeSnapshot(
                 target_id=TargetId("game"),
@@ -316,7 +221,6 @@ class TargetRuntimeTest(unittest.TestCase):
             inspector_id="test",
             channels=(self._window_channel(),),
         )
-
         with self.assertRaises(FrozenInstanceError):
             snapshot.availability = TargetAvailability.MISSING
 
