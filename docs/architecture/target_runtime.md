@@ -7,7 +7,8 @@ logical automation target and its possible control channels.
 
 It is a read-only interaction capability. It answers whether the target is known
 to exist and what Window, ADB, or future channels currently report. It does not
-own visual interpretation, caller policy, lifecycle effects, or input execution.
+own visual interpretation, caller policy, channel preparation, lifecycle effects,
+or input execution.
 
 ```text
 TargetRuntimeInspector
@@ -18,13 +19,15 @@ availability + channel state
           │
           ▼
 caller-owned logic
-          │
-          ▼
-execution preflight and capability adapter
+    ┌─────┴─────────────┐
+    ▼                   ▼
+management          execution preflight
+prepare channel     use ready channel
 ```
 
 The caller may use a runtime snapshot without acquiring pixels, for example to
-choose whether to invoke a launch capability for a missing target.
+choose whether to invoke a launch capability for a missing target or a management
+capability for a blocked channel.
 
 ## Target and channel observations
 
@@ -45,11 +48,12 @@ Target Runtime does not:
 
 - launch, close, terminate, or restart an application;
 - activate, restore, move, or resize a window;
-- start or reconnect ADB;
+- start, stop, prepare, or recover ADB;
 - authorize a device; or
 - send pointer, keyboard, text, navigation, or shell input.
 
-Those operations belong to `execution` capability adapters.
+Window and ADB preparation operations belong to `management` capability adapters.
+Application lifecycle and input operations belong to `execution` adapters.
 
 ## Window and ADB channels
 
@@ -77,9 +81,10 @@ No channels, or no ready channels, does not prove that the target is missing.
 A runtime snapshot is a timestamped prior inspection. Focus, geometry, process
 existence, authorization, and transport state can change immediately afterward.
 
-The consuming application may use a snapshot to select an operation or channel,
-but the snapshot is not a lock. Target resolution and execution adapters must
-revalidate mutable preconditions immediately before an external side effect.
+The consuming application may use a snapshot to select a management or execution
+operation, but the snapshot is not a lock. Management results must be followed by
+fresh observation. Target resolution and execution adapters must revalidate
+mutable preconditions immediately before an external side effect.
 
 The framework reports observed state and native operation results. The caller
 owns action selection, retry/fallback policy, and application-level success
@@ -87,3 +92,6 @@ criteria.
 
 See [Observation boundaries](observation_boundaries.md) for the relationship
 between Capture, Target Runtime, Temporal, and caller-owned acquisition logic.
+
+See [Management capabilities](management_capabilities.md) for Window and ADB
+preparation contracts.

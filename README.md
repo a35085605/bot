@@ -3,7 +3,7 @@
 This repository provides platform-neutral contracts and adapters for interacting
 with an external environment. It is an interaction kernel, not an agent runtime.
 
-The framework owns three capability boundaries:
+The framework owns four capability boundaries:
 
 ```text
 External environment
@@ -16,17 +16,21 @@ capture pixels, inspect target/runtime state, and read time
 Caller-owned logic
 interpret observations and choose what should happen
         │
+        ├──────────────► Management
+        │                prepare or recover Window / ADB control channels
+        │                         │
+        │                         └────────► observe again
         ▼
 Target resolution
 bind content-space targets to fresh native window/device coordinates
         │
         ▼
 Execution
-perform lifecycle, window, pointer, keyboard, text, or navigation operations
+perform lifecycle, pointer, keyboard, text, or navigation operations
         │
         ▼
-Execution report
-native attempt result returned to the caller
+Native operation report
+attempt result returned to the caller
 ```
 
 ## In scope
@@ -38,19 +42,20 @@ for:
 - visual capture, capture quality, source identity, and pixel provenance;
 - clean-content extraction from raw captures;
 - target availability and Window, ADB, or future control-channel inspection;
+- Window management and ADB server or transport preparation capabilities;
 - visual-to-logical target binding and execution-time target resolution;
-- lifecycle, window-management, pointer, keyboard, text, and navigation effects;
+- lifecycle, pointer, keyboard, text, and navigation effects;
 - optional detector-input and evidence primitives;
 - stable public contracts that external extension packages may consume; and
 - platform adapters that implement these contracts.
 
 Observation snapshots describe facts acquired at a point in time. They are not
 locks. Mutable target identity, readiness, and geometry must be revalidated when
-an execution adapter resolves or performs an external effect.
+a management or execution adapter performs an external effect.
 
-Execution success means that the native backend completed the requested attempt.
-It does not claim that an application-level goal or expected state transition was
-achieved.
+A successful management or execution result means that the native backend
+completed the requested attempt. It does not claim that a channel became ready,
+an application-level goal succeeded, or an expected state transition occurred.
 
 ## External extensions
 
@@ -91,6 +96,7 @@ consumer composition
 ├── external extension packages
 └── interaction contracts from this repository
     ├── observation
+    ├── management
     ├── content and targeting
     ├── execution
     └── optional sensing primitives
@@ -105,9 +111,12 @@ workflow, or semantic models.
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for read-only observation families and freshness rules.
 
+See [`docs/architecture/management_capabilities.md`](docs/architecture/management_capabilities.md)
+for Window and ADB channel preparation contracts.
+
 See [`docs/architecture/content_boundaries.md`](docs/architecture/content_boundaries.md)
 and [`docs/architecture/capture_target_boundaries.md`](docs/architecture/capture_target_boundaries.md)
 for content-space, target binding, and execution-time coordinate resolution.
 
 See [`docs/architecture/execution_capabilities.md`](docs/architecture/execution_capabilities.md)
-for external-effect capability contracts.
+for application-interaction capability contracts.
