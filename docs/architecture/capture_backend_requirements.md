@@ -42,8 +42,10 @@ In particular, `acquire()` must not:
 - launch or terminate the target; or
 - send pointer, keyboard, text, or navigation input.
 
-Those are Execution effects. A coordinator or orchestration policy may choose to
-perform them and retry capture, but that policy is outside this boundary.
+Window and ADB administration are Management effects. Target lifecycle and input
+operations are Execution effects. A coordinator or caller-owned policy may choose
+to perform either kind of effect and retry capture, but that policy is outside
+this boundary.
 
 ## Backend profile
 
@@ -95,9 +97,9 @@ CaptureUnavailable(
 )
 ```
 
-The signal is capture-specific. It does not claim that an Execution control
-channel is blocked, because capture readiness and input readiness may differ for
-the same window or ADB target.
+The signal is capture-specific. It does not claim that a control channel is
+blocked for execution, because capture readiness and input readiness may differ
+for the same window or ADB target.
 
 ## Materialization boundary
 
@@ -144,10 +146,13 @@ A coordinator may combine:
 ```text
 CaptureBackendProfile
 + TargetRuntimeSnapshot
-+ preparation policy
-+ Execution capabilities
++ caller-owned preparation policy
++ platform Management capabilities
++ optional lifecycle Execution capabilities
 ```
 
-It may then activate or restore a target, inspect Runtime again, and retry
-capture. Capture itself does not define that coordinator, preparation policy,
-retry loop, timeout, backend fallback, or state restoration behavior.
+It may use Management to activate or restore a window, prepare or recover ADB,
+observe Target Runtime again, and retry capture. When target lifecycle work is
+required, it may separately use Execution lifecycle capabilities. Capture itself
+does not define that coordinator, preparation policy, retry loop, timeout,
+backend fallback, or state restoration behavior.

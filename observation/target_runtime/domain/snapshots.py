@@ -38,9 +38,10 @@ class TargetRuntimeSnapshot:
     that target. A target can therefore be available while every channel is
     blocked or unavailable.
 
-    The snapshot is read-only, time-sensitive evidence for orchestration and
-    Decision. It is not a lock and does not guarantee that the same conditions
-    still hold when Execution performs an external side effect.
+    The snapshot is read-only, time-sensitive evidence for caller-owned
+    orchestration and policy. It is not a lock and does not guarantee that the
+    same conditions still hold when a management or execution adapter performs
+    an external side effect.
     """
 
     target_id: TargetId

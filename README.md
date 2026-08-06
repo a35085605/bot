@@ -156,6 +156,9 @@ Observation, management, execution, platform packages, and extensions may depend
 on `target` and `control_channel`. Those shared packages do not depend on any
 capability family or platform package.
 
+See [`docs/architecture/public_namespaces.md`](docs/architecture/public_namespaces.md)
+for canonical public imports and narrow package-root facades.
+
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for environment observations, temporal input, scheduling, and freshness rules.
 
@@ -166,9 +169,16 @@ observation.
 See [`docs/architecture/management_capabilities.md`](docs/architecture/management_capabilities.md)
 for Window and ADB channel administration contracts.
 
+See [`docs/architecture/capture_backend_requirements.md`](docs/architecture/capture_backend_requirements.md)
+for read-only capture requirements and caller-owned preparation flows.
+
 See [`docs/architecture/content_boundaries.md`](docs/architecture/content_boundaries.md)
 and [`docs/architecture/capture_target_boundaries.md`](docs/architecture/capture_target_boundaries.md)
 for content-space, target binding, and execution-time coordinate resolution.
+
+See [`docs/architecture/detector_input_preparation.md`](docs/architecture/detector_input_preparation.md)
+and [`docs/architecture/evidence_bridge.md`](docs/architecture/evidence_bridge.md)
+for detector-input preparation and detector-neutral evidence assembly.
 
 See [`docs/architecture/execution_capabilities.md`](docs/architecture/execution_capabilities.md)
 for application-interaction capability contracts.
