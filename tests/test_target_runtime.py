@@ -4,23 +4,27 @@ from dataclasses import dataclass, FrozenInstanceError
 from datetime import datetime, timezone
 import unittest
 
-from observation.target_runtime import (
+from adb.observation import (
     AdbChannelInspector,
     AdbChannelState,
     AdbDeviceStatus,
+)
+from desktop_window.observation import (
+    FocusStatus,
+    WindowChannelInspector,
+    WindowChannelState,
+)
+from observation.target_runtime import (
     ControlCapability,
     ControlChannelId,
     ControlChannelInspector,
     ControlChannelKind,
     ControlChannelSnapshot,
     ControlChannelStatus,
-    FocusStatus,
     ReadinessBlocker,
     TargetAvailability,
     TargetId,
     TargetRuntimeSnapshot,
-    WindowChannelInspector,
-    WindowChannelState,
 )
 
 

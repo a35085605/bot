@@ -1,9 +1,3 @@
-from execution.control import (
-    DevicePoint,
-    ExecutionOperationResult,
-    ExecutionOperationStatus,
-    ScreenPoint,
-)
 from execution.domain import (
     ContentPointTarget,
     ContentRectTarget,
@@ -46,28 +40,11 @@ from execution.lifecycle import (
     TargetTerminator,
 )
 from execution.ports import ExecutionTargetResolver
-from execution.window import (
-    WindowActivation,
-    WindowActivator,
-    WindowBoundsChange,
-    WindowBoundsController,
-    WindowMinimize,
-    WindowMinimizer,
-    WindowMove,
-    WindowMover,
-    WindowResize,
-    WindowResizer,
-    WindowRestore,
-    WindowRestorer,
-)
 
 __all__ = [
     "BackNavigator",
     "ContentPointTarget",
     "ContentRectTarget",
-    "DevicePoint",
-    "ExecutionOperationResult",
-    "ExecutionOperationStatus",
     "ExecutionTargetFailureReason",
     "ExecutionTargetResolution",
     "ExecutionTargetResolver",
@@ -90,7 +67,6 @@ __all__ = [
     "PointerScroll",
     "PointerScroller",
     "ResolvedExecutionTarget",
-    "ScreenPoint",
     "ScrollDelta",
     "TargetClose",
     "TargetCloser",
@@ -102,16 +78,4 @@ __all__ = [
     "TargetTerminator",
     "TextController",
     "TextEntry",
-    "WindowActivation",
-    "WindowActivator",
-    "WindowBoundsChange",
-    "WindowBoundsController",
-    "WindowMinimize",
-    "WindowMinimizer",
-    "WindowMove",
-    "WindowMover",
-    "WindowResize",
-    "WindowResizer",
-    "WindowRestore",
-    "WindowRestorer",
 ]

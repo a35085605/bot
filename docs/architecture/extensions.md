@@ -30,7 +30,7 @@ consumer composition
         │                         ▼
         └──────────────► public interaction contracts
                           ├── observation.target_runtime
-                          ├── management
+                          ├── desktop_window.management / adb.management
                           ├── content and targeting
                           ├── detector_input and evidence
                           ├── execution
@@ -54,9 +54,9 @@ desktop_window.observation       adb.observation
 Window detail + inspector        ADB detail + inspector
 ```
 
-The generic Target Runtime core does not eagerly import those platform packages.
-Compatibility imports resolve lazily, while new code imports from the package that
-owns the platform model.
+The generic Target Runtime core does not import those platform packages. Callers
+import platform-specific models and inspectors directly from the vertical package
+that owns them.
 
 ## Control-channel extensions
 

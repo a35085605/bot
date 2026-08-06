@@ -27,13 +27,12 @@ The package is divided into independently implementable capability families:
 - `execution.input`: pointer, keyboard, text, and navigation operations; and
 - `execution.ports`: execution-time target resolution.
 
-Shared native-coordinate values live under `native_coordinates`, while synchronous
-native-attempt reports live under `native_operation`. The `execution.control`
-namespace remains as a compatibility facade for their previous names.
+Shared native-coordinate values live under `native_coordinates`, while
+synchronous native-attempt reports live under `native_operation`.
 
-Window activation and geometry management are canonical under
-`desktop_window.management`. The `management.window` and `execution.window`
-namespaces remain temporarily for import compatibility.
+Window activation and geometry management are owned by
+`desktop_window.management`. ADB server and transport administration are owned by
+`adb.management`.
 
 No adapter is required to implement every family. A desktop adapter may expose
 Window management and screen-input capabilities, while an ADB adapter may expose
@@ -53,9 +52,6 @@ the backend completed the requested native attempt. It does not prove that:
 Those facts must be acquired again through observation and evaluated by
 caller-owned effect verification.
 
-`ExecutionOperationResult` and `ExecutionOperationStatus` remain compatibility
-aliases to `NativeOperationResult` and `NativeOperationStatus`.
-
 ## Lifecycle
 
 Lifecycle commands are target-aware and carry `TargetId`:
@@ -69,14 +65,10 @@ A restart adapter may use a native supervisor restart operation. Orchestration m
 instead compose close or terminate, observe `MISSING`, launch, and observe
 `AVAILABLE`. The port does not prescribe retry, timeout, or verification policy.
 
-## Window compatibility
+## Window management
 
-Window-management commands and ports are canonical under
-`desktop_window.management`. Existing imports from `management.window`,
-`execution.window`, and the top-level `execution` package resolve to the same
-objects during the staged migration.
-
-New code should use `desktop_window.management`.
+Window-management commands and ports live under
+`desktop_window.management`.
 
 See [Management capabilities](management_capabilities.md) for activation,
 minimize, restore, move, resize, bounds, and ADB administration contracts.
@@ -91,8 +83,7 @@ Input contracts remain backend-neutral and retain the existing capability split:
 - Back navigation.
 
 `native_coordinates.ScreenPoint` permits negative virtual-screen coordinates.
-`native_coordinates.DevicePoint` rejects negative coordinates. Existing imports
-from `execution.control` and `execution` resolve to those same types.
+`native_coordinates.DevicePoint` rejects negative coordinates.
 
 Conversion from content-space intent to either native space remains the
 responsibility of `ExecutionTargetResolver` immediately before an input effect.
@@ -114,11 +105,3 @@ adb.management ──────────────► concrete ADB adapte
 Execution capability packages must not inspect visual semantics, choose policy,
 or claim application-level success. They expose synchronous native operations
 that higher-level orchestration can select, sequence, and verify.
-
-## Compatibility
-
-`execution.control` is retained temporarily as a compatibility facade for native
-coordinates and operation-result names.
-
-`execution.window` is retained temporarily as a compatibility facade for
-`desktop_window.management`.

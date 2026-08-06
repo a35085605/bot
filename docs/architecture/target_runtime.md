@@ -55,9 +55,9 @@ channel has its own identity, status, capabilities, blockers, and detail value.
 ## Extensible channel contracts
 
 `ControlChannelKind` is a normalized string value rather than a closed enum.
-`ControlChannelKind.DESKTOP_WINDOW` and `ControlChannelKind.ADB` remain built-in
-constants, while an external package may construct another stable kind such as
-`ControlChannelKind("webdriver")` without changing this repository.
+`ControlChannelKind.DESKTOP_WINDOW` and `ControlChannelKind.ADB` identify the
+built-in channel families, while an external package may construct another stable
+kind such as `ControlChannelKind("webdriver")` without changing this repository.
 
 `ControlChannelSnapshot[DetailsT]` is generic over its detail model. The core
 validates only platform-neutral invariants:
@@ -89,28 +89,15 @@ from adb.observation import (
 ```
 
 `desktop_window.observation` owns desktop-window identity, process, title, client
-and outer bounds, focus relationship, minimized state, visibility, responsiveness,
-and the specialized read-only inspector protocol.
+and outer bounds, focus relationship, minimized state, visibility,
+responsiveness, and the specialized read-only inspector protocol.
 
 `adb.observation` owns server reachability, selected device identity, device
 status, authorization and transport readiness, plus the specialized read-only
 inspector protocol.
 
 These packages depend on the generic Target Runtime contracts. Importing the core
-does not eagerly import either platform package.
-
-## Compatibility imports
-
-Previous imports remain available during the staged migration:
-
-```python
-from observation.target_runtime import WindowChannelState, AdbChannelState
-```
-
-The old top-level and deep module paths resolve lazily to the canonical vertical
-objects. They are compatibility aliases, not duplicate models or implementations.
-New code should import platform-specific contracts from the owning vertical
-package.
+does not import either platform package.
 
 ## Read-only inspection
 
@@ -124,8 +111,9 @@ Target Runtime and platform observation packages do not:
 - authorize a device; or
 - send pointer, keyboard, text, navigation, or shell input.
 
-Window and ADB preparation operations belong to `management` capability adapters.
-Application lifecycle and input operations belong to `execution` adapters.
+Window and ADB administration operations belong to
+`desktop_window.management` and `adb.management`. Application lifecycle and input
+operations belong to `execution` adapters.
 
 Current runtime facts do not belong in `CapturedFrame`. Capture retains only the
 source identity and geometry required to explain one historical raster.
@@ -157,7 +145,7 @@ See [Observation boundaries](observation_boundaries.md) for the relationship
 between Capture, Target Runtime, Temporal, and caller-owned acquisition logic.
 
 See [Management capabilities](management_capabilities.md) for Window and ADB
-preparation contracts.
+administration contracts.
 
 See [External extensions](extensions.md) for package ownership and explicit
 composition rules for additional channel families.

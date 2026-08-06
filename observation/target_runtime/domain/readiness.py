@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import ClassVar
 
 from observation.target_runtime.domain.identities import (
     normalize_non_empty_text,
 )
-
-if TYPE_CHECKING:
-    from adb.observation.domain import AdbDeviceStatus
-    from desktop_window.observation.domain import FocusStatus
 
 
 class TargetAvailability(str, Enum):
@@ -21,7 +17,7 @@ class TargetAvailability(str, Enum):
 class ControlChannelKind(str):
     """Extensible stable identifier for one control-channel family.
 
-    Built-in Window and ADB constants remain available for compatibility.
+    Built-in Window and ADB constants identify the built-in channel families.
     External packages may construct additional normalized values without
     modifying the interaction kernel.
     """
@@ -61,25 +57,9 @@ class ControlCapability(str, Enum):
     BACK = "back"
 
 
-def __getattr__(name: str) -> Any:
-    """Lazily retain pre-migration platform status imports."""
-
-    if name == "AdbDeviceStatus":
-        from adb.observation.domain import AdbDeviceStatus
-
-        return AdbDeviceStatus
-    if name == "FocusStatus":
-        from desktop_window.observation.domain import FocusStatus
-
-        return FocusStatus
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 __all__ = [
-    "AdbDeviceStatus",
     "ControlCapability",
     "ControlChannelKind",
     "ControlChannelStatus",
-    "FocusStatus",
     "TargetAvailability",
 ]

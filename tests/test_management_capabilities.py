@@ -1,29 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
+from typing import get_type_hints
 import unittest
 
-from execution import ScreenPoint
-from execution.window import (
-    WindowActivator as CompatibilityWindowActivator,
-)
-from management.adb import (
+from adb.management import (
     AdbServerStart,
     AdbServerStop,
     AdbTransportPreparation,
+    AdbTransportPreparer,
     AdbTransportRecovery,
 )
-from management.window import (
+from desktop_window.management import (
     WindowActivation,
     WindowActivator,
     WindowMove,
 )
+from native_coordinates import ScreenPoint
+from native_operation import NativeOperationResult
 from observation.target_runtime import ControlChannelId
 
 
 class ManagementCapabilityDomainTest(unittest.TestCase):
-    def test_window_management_ports_keep_execution_compatibility(self) -> None:
-        self.assertIs(WindowActivator, CompatibilityWindowActivator)
+    def test_window_management_requests_use_canonical_contracts(self) -> None:
         self.assertEqual(
             WindowActivation(" hwnd:42 ").window_id,
             "hwnd:42",
@@ -52,6 +51,16 @@ class ManagementCapabilityDomainTest(unittest.TestCase):
             preparation.channel_id = ControlChannelId("other")
         with self.assertRaises(TypeError):
             AdbTransportPreparation("adb")  # type: ignore[arg-type]
+
+    def test_management_ports_return_native_operation_results(self) -> None:
+        self.assertIs(
+            get_type_hints(WindowActivator.activate)["return"],
+            NativeOperationResult,
+        )
+        self.assertIs(
+            get_type_hints(AdbTransportPreparer.prepare)["return"],
+            NativeOperationResult,
+        )
 
 
 if __name__ == "__main__":

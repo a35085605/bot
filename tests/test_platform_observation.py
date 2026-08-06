@@ -59,7 +59,7 @@ class StaticAdbInspector:
         return self._snapshot
 
 
-class PlatformObservationMigrationTest(unittest.TestCase):
+class PlatformObservationTest(unittest.TestCase):
     def test_canonical_platform_packages_specialize_core_contracts(self) -> None:
         window = ControlChannelSnapshot(
             channel_id=ControlChannelId("window"),
@@ -100,51 +100,6 @@ class PlatformObservationMigrationTest(unittest.TestCase):
 
         self.assertIs(runtime.channels[0].details, window.details)
         self.assertIs(runtime.channels[1].details, adb.details)
-
-    def test_legacy_import_paths_alias_canonical_objects(self) -> None:
-        from observation.target_runtime import (
-            AdbChannelInspector as LegacyAdbChannelInspector,
-            AdbChannelState as LegacyAdbChannelState,
-            AdbDeviceStatus as LegacyAdbDeviceStatus,
-            FocusStatus as LegacyFocusStatus,
-            WindowChannelInspector as LegacyWindowChannelInspector,
-            WindowChannelState as LegacyWindowChannelState,
-        )
-        from observation.target_runtime.domain import (
-            AdbChannelState as LegacyDomainAdbChannelState,
-            AdbDeviceStatus as LegacyDomainAdbDeviceStatus,
-            FocusStatus as LegacyDomainFocusStatus,
-            WindowChannelState as LegacyDomainWindowChannelState,
-        )
-        from observation.target_runtime.domain.channels import (
-            AdbChannelState as LegacyChannelsAdbChannelState,
-            WindowChannelState as LegacyChannelsWindowChannelState,
-        )
-        from observation.target_runtime.domain.readiness import (
-            AdbDeviceStatus as LegacyReadinessAdbDeviceStatus,
-            FocusStatus as LegacyReadinessFocusStatus,
-        )
-        from observation.target_runtime.ports import (
-            AdbChannelInspector as LegacyPortsAdbChannelInspector,
-            WindowChannelInspector as LegacyPortsWindowChannelInspector,
-        )
-
-        self.assertIs(LegacyAdbChannelState, AdbChannelState)
-        self.assertIs(LegacyDomainAdbChannelState, AdbChannelState)
-        self.assertIs(LegacyChannelsAdbChannelState, AdbChannelState)
-        self.assertIs(LegacyAdbDeviceStatus, AdbDeviceStatus)
-        self.assertIs(LegacyDomainAdbDeviceStatus, AdbDeviceStatus)
-        self.assertIs(LegacyReadinessAdbDeviceStatus, AdbDeviceStatus)
-        self.assertIs(LegacyAdbChannelInspector, AdbChannelInspector)
-        self.assertIs(LegacyPortsAdbChannelInspector, AdbChannelInspector)
-        self.assertIs(LegacyWindowChannelState, WindowChannelState)
-        self.assertIs(LegacyDomainWindowChannelState, WindowChannelState)
-        self.assertIs(LegacyChannelsWindowChannelState, WindowChannelState)
-        self.assertIs(LegacyFocusStatus, FocusStatus)
-        self.assertIs(LegacyDomainFocusStatus, FocusStatus)
-        self.assertIs(LegacyReadinessFocusStatus, FocusStatus)
-        self.assertIs(LegacyWindowChannelInspector, WindowChannelInspector)
-        self.assertIs(LegacyPortsWindowChannelInspector, WindowChannelInspector)
 
     def test_importing_core_contracts_does_not_load_platform_modules(self) -> None:
         repository_root = Path(__file__).resolve().parents[1]
