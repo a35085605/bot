@@ -6,7 +6,7 @@ from typing import TypeAlias
 from geometry.rect import Rect
 from geometry.size import Size
 from imaging import ImagePixels, Interpolation, RasterImage
-from observation import FrameId
+from observation.capture import FrameId
 
 
 def _normalize_non_empty_text(

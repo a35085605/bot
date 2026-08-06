@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TypeVar
 
-from detector_input import DetectorInputContext, ImagePlacement
+from detector_input import DetectorInputContext
 from evidence.domain.models import (
     Evidence,
     EvidenceId,
@@ -52,3 +52,6 @@ class EvidenceAssembler:
             result=result,
             duration=duration,
         )
+
+
+__all__ = ["EvidenceAssembler"]

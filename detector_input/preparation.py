@@ -14,7 +14,7 @@ from imaging import (
     RasterImage,
     crop_image,
 )
-from observation import FrameId
+from observation.capture import FrameId
 
 
 class FixedViewportRoiPreparer:

@@ -5,13 +5,13 @@ import unittest
 
 from detector_input import DetectorInputContext, ImagePlacement
 from evidence import (
+    EvidenceAssembler,
     EvidenceId,
     EvidenceKind,
     EvidenceProvenance,
 )
 from geometry.rect import Rect
-from observation import FrameId
-from perception_integration import EvidenceAssembler
+from observation.capture import FrameId
 
 
 class EvidenceBridgeTest(unittest.TestCase):

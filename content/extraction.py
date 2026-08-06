@@ -9,11 +9,7 @@ from content.models import ContentFrame, ContentPlacementInCapture
 from geometry.point import Point
 from geometry.rect import Rect
 from imaging import ImagePixels, PixelFormat, RasterImage, crop_image
-from observation import (
-    CapturedFrame,
-    FrameId,
-    FrameInfo,
-)
+from observation.capture import CapturedFrame, FrameId, FrameInfo
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:

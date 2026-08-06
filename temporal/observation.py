@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from observation.temporal.models import TemporalSnapshot
-from observation.temporal.ports import Clock
+from temporal.models import TemporalSnapshot
+from temporal.ports import Clock
 
 
 def observe_time(

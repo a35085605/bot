@@ -6,6 +6,7 @@ import numpy as np
 
 from detector_input import FixedViewportRoiPreparer
 from evidence import (
+    EvidenceAssembler,
     EvidenceId,
     EvidenceKind,
     EvidenceProvenance,
@@ -14,8 +15,7 @@ from geometry.rect import Rect
 from geometry.size import Size
 from imaging import Interpolation, PixelFormat, RasterImage
 from imaging.adapters import OpenCVImageResizer
-from observation import FrameId
-from perception_integration import EvidenceAssembler
+from observation.capture import FrameId
 
 
 class DetectorInputPreparationTest(unittest.TestCase):

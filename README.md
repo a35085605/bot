@@ -3,34 +3,29 @@
 This repository provides platform-neutral contracts and adapters for interacting
 with an external environment. It is an interaction kernel, not an agent runtime.
 
-The framework owns four capability boundaries:
+The framework separates interaction and timing boundaries:
 
 ```text
-External environment
-        │
-        ▼
-Observation
-capture pixels, inspect target/runtime state, and read time
-        │
-        ▼
-Caller-owned logic
-interpret observations and choose what should happen
-        │
-        ├──────────────► Management
-        │                prepare or recover Window / ADB control channels
-        │                         │
-        │                         └────────► observe again
-        ▼
-Target resolution
-bind content-space targets to fresh native window/device coordinates
-        │
-        ▼
-Execution
-perform lifecycle, pointer, keyboard, text, or navigation operations
-        │
-        ▼
-Native operation report
-attempt result returned to the caller
+External environment ───────► Observation ───────┐
+                              capture/runtime     │
+                                                 ▼
+Host clocks ────────────────► Temporal ───► Caller-owned logic
+                              read time       interpret facts
+                                              and choose work
+                                                    │
+                         ┌──────────────────────────┼─────────────────┐
+                         ▼                          ▼                 ▼
+                    Scheduling                 Management     Target resolution
+                    register data events       prepare or     bind content targets
+                                               recover        to fresh coordinates
+                                                                  │
+                                                                  ▼
+                                                              Execution
+                                                              perform native
+                                                              interactions
+                                                                  │
+                                                                  ▼
+                                                        Native operation report
 ```
 
 ## In scope
@@ -45,6 +40,8 @@ for:
 - visual capture, capture quality, source identity, and pixel provenance;
 - clean-content extraction from raw captures;
 - target availability and control-channel observation snapshots;
+- wall-clock and monotonic observations under `temporal`;
+- event-registration contracts under `scheduling`;
 - built-in Window observation under `desktop_window.observation`;
 - built-in ADB observation under `adb.observation`;
 - Window management under `desktop_window.management`;
@@ -82,6 +79,13 @@ from control_channel import (
 `TargetAvailability`, `ControlChannelSnapshot`, `TargetRuntimeSnapshot`, and their
 inspector ports. Management and execution therefore depend on the shared kernel,
 not on observation merely to obtain identities or channel vocabulary.
+
+## Temporal and scheduling ownership
+
+`temporal` owns read-only wall-clock and monotonic-time contracts. `scheduling`
+owns registration and cancellation of data-event delivery. Scheduling is not an
+Observation capability because registering or cancelling delivery is an external
+side effect.
 
 ## Platform observation ownership
 
@@ -136,7 +140,8 @@ consumer composition
 ├── external extension packages
 └── interaction contracts from this repository
     ├── target / control_channel
-    ├── observation.target_runtime
+    ├── observation.capture / observation.target_runtime
+    ├── temporal / scheduling
     ├── desktop_window.observation / adb.observation
     ├── desktop_window.management / adb.management
     ├── content and targeting
@@ -152,7 +157,7 @@ on `target` and `control_channel`. Those shared packages do not depend on any
 capability family or platform package.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
-for read-only observation families and freshness rules.
+for environment observations, temporal input, scheduling, and freshness rules.
 
 See [`docs/architecture/target_runtime.md`](docs/architecture/target_runtime.md)
 for shared-kernel ownership, generic channel snapshots, and vertical platform

@@ -3,8 +3,8 @@
 ## Purpose
 
 `detector_input` prepares one detector invocation and records its spatial
-context. `perception_integration` then converts detector-local output into
-content-root `Evidence`.
+context. The `evidence` package converts detector-local output into content-root
+`Evidence` through `EvidenceAssembler`.
 
 ```text
 Content image + resolved content ROI
@@ -23,7 +23,7 @@ Content image + resolved content ROI
                                Evidence in content-root
 ```
 
-The bridge is a pure conversion boundary. It does not capture frames, crop or
+The assembler is a pure conversion boundary. It does not capture frames, crop or
 resize images, run or select detectors, assign semantic meaning, schedule work,
 retry, or verify effects.
 
@@ -32,11 +32,11 @@ retry, or verify effects.
 ```text
 geometry ───────────────► imaging
                               │
-observation ───────┐           ▼
-geometry ──────────┼──► detector_input ──► external detector packages
-imaging ───────────┘           │
-                              ▼
-evidence ─────────────► perception_integration
+observation.capture ─┐        ▼
+geometry ────────────┼──► detector_input ──► external detector packages
+imaging ─────────────┘           │
+                                 ▼
+                         evidence assembly
 ```
 
 - `imaging` owns immutable rasters, crop, resize capability, and concrete image
@@ -44,15 +44,16 @@ evidence ─────────────► perception_integration
 - `detector_input` owns prepared images, placements, and invocation identity.
 - external detector packages may consume prepared pixels without becoming core
   dependencies.
-- `perception_integration` owns only detector-result-to-Evidence conversion.
+- `evidence` owns detector-neutral evidence models and detector-result assembly.
 
-Callers import detector-input contracts directly from `detector_input` and the
-bridge from `perception_integration`. Detector implementations are installed
-separately and supplied by the consuming application's composition root.
+Callers import detector-input contracts directly from `detector_input` and
+`EvidenceAssembler` directly from `evidence`. Detector implementations are
+installed separately and supplied by the consuming application's composition
+root.
 
-External detector packages must not require Observation, window metadata, or
-screen-coordinate types merely to run a detector. Evidence does not own
-detector-input preparation or extension-specific result types.
+External detector packages must not require the Observation facade, window
+metadata, or screen-coordinate types merely to run a detector. Evidence does not
+own detector-input preparation or extension-specific result types.
 
 ## Spatial contract
 
@@ -71,13 +72,13 @@ padding, such as detector-side letterboxing. Detector results must be fully
 contained by `content_bounds_local`; results in padding are rejected instead of
 being assigned misleading root coordinates.
 
-The source ROI and detector content may have different sizes. Mapping uses
-floor for leading edges and ceil for trailing edges, ensuring the returned
-half-open root rectangle contains the complete detector result.
+The source ROI and detector content may have different sizes. Mapping uses floor
+for leading edges and ceil for trailing edges, ensuring the returned half-open
+root rectangle contains the complete detector result.
 
 `DetectorInputContext` adds observation identity and complete content bounds:
 
-- `frame_id` and `source_id` identify the observation;
+- `frame_id` and `source_id` identify the captured observation;
 - `root_bounds` are the complete content-root bounds; and
 - `placement.source_bounds_root` must be inside `root_bounds`.
 
@@ -88,11 +89,11 @@ capture backend, detector implementation, or scheduling policy.
 
 ```python
 from detector_input import FixedViewportRoiPreparer
+from evidence import EvidenceAssembler, EvidenceId, EvidenceKind
 from geometry.rect import Rect
 from geometry.size import Size
 from imaging import Interpolation
 from imaging.adapters import OpenCVImageResizer
-from perception_integration import EvidenceAssembler
 
 prepared = FixedViewportRoiPreparer(
     resizer=OpenCVImageResizer(),

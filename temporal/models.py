@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from enum import Enum
 import math
 from numbers import Real
 
@@ -18,42 +17,13 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
     return normalized
 
 
-class MisfirePolicy(Enum):
-    """How a scheduler handles occurrences that became due while unavailable."""
-
-    SKIP = "skip"
-    FIRE_ONCE = "fire_once"
-    CATCH_UP_ALL = "catch_up_all"
-
-
-@dataclass(frozen=True, slots=True)
-class ScheduleToken:
-    """Opaque identity returned for one scheduler registration."""
-
-    value: str
-
-    def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "value",
-            _normalize_non_empty_text(
-                self.value,
-                field_name="schedule token",
-            ),
-        )
-
-
 @dataclass(frozen=True, slots=True)
 class TemporalSnapshot:
     """One explicit observation of wall-clock and monotonic time.
 
-    ``observed_at`` supports calendar, timezone, and schedule policy.
+    ``observed_at`` supports calendar and timezone policy.
     ``monotonic_seconds`` supports elapsed-duration, timeout, age, and freshness
     calculations that must not depend on wall-clock adjustments.
-
-    A timestamp stored on another snapshot says when that observation occurred.
-    This value instead makes time itself an input to an orchestration cycle and,
-    in the current Observation model, provides the coherence reference.
     """
 
     observed_at: datetime
