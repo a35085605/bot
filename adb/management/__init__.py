@@ -1,13 +1,15 @@
-"""Compatibility facade for ``adb.management``."""
+"""ADB server and transport management contracts."""
 
-from adb.management import (
+from adb.management.domain import (
     AdbServerStart,
-    AdbServerStarter,
     AdbServerStop,
-    AdbServerStopper,
     AdbTransportPreparation,
-    AdbTransportPreparer,
     AdbTransportRecovery,
+)
+from adb.management.ports import (
+    AdbServerStarter,
+    AdbServerStopper,
+    AdbTransportPreparer,
     AdbTransportRecoverer,
 )
 

@@ -1,37 +1,15 @@
-from __future__ import annotations
+"""Compatibility exports for ADB management ports."""
 
-from typing import Protocol
-
-from execution.control import ExecutionOperationResult
-from management.adb.domain import (
-    AdbServerStart,
-    AdbServerStop,
-    AdbTransportPreparation,
-    AdbTransportRecovery,
+from adb.management.ports import (
+    AdbServerStarter,
+    AdbServerStopper,
+    AdbTransportPreparer,
+    AdbTransportRecoverer,
 )
 
-
-class AdbServerStarter(Protocol):
-    def start(self, operation: AdbServerStart) -> ExecutionOperationResult:
-        ...
-
-
-class AdbServerStopper(Protocol):
-    def stop(self, operation: AdbServerStop) -> ExecutionOperationResult:
-        ...
-
-
-class AdbTransportPreparer(Protocol):
-    def prepare(
-        self,
-        operation: AdbTransportPreparation,
-    ) -> ExecutionOperationResult:
-        ...
-
-
-class AdbTransportRecoverer(Protocol):
-    def recover(
-        self,
-        operation: AdbTransportRecovery,
-    ) -> ExecutionOperationResult:
-        ...
+__all__ = [
+    "AdbServerStarter",
+    "AdbServerStopper",
+    "AdbTransportPreparer",
+    "AdbTransportRecoverer",
+]

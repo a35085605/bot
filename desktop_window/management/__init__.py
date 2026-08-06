@@ -1,17 +1,19 @@
-"""Compatibility facade for ``desktop_window.management``."""
+"""Desktop-window state and geometry management contracts."""
 
-from desktop_window.management import (
+from desktop_window.management.domain import (
     WindowActivation,
-    WindowActivator,
     WindowBoundsChange,
-    WindowBoundsController,
     WindowMinimize,
-    WindowMinimizer,
     WindowMove,
-    WindowMover,
     WindowResize,
-    WindowResizer,
     WindowRestore,
+)
+from desktop_window.management.ports import (
+    WindowActivator,
+    WindowBoundsController,
+    WindowMinimizer,
+    WindowMover,
+    WindowResizer,
     WindowRestorer,
 )
 

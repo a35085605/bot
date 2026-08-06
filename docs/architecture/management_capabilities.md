@@ -2,9 +2,13 @@
 
 ## Purpose
 
-The `management` package owns optional side-effect capabilities that prepare or
-maintain a control channel before application interaction. It sits between
-read-only Target Runtime observation and caller-selected Execution.
+Management owns explicit side-effect capabilities that administer control-channel
+and host infrastructure state. This includes preparation and recovery, but also
+configuration, suspension, and shutdown operations that may intentionally make a
+channel unavailable.
+
+It sits between read-only Target Runtime observation and caller-selected
+Execution:
 
 ```text
 TargetRuntimeSnapshot
@@ -14,7 +18,7 @@ caller-owned policy
         │
         ├── channel already ready ───────────────► execution preflight
         │
-        └── preparation required
+        └── administration required
                     │
                     ▼
                management
@@ -23,31 +27,45 @@ caller-owned policy
             observe runtime again
 ```
 
-Management never decides that preparation is required. The caller chooses whether
-to invoke a management capability, retry it, select another channel, or stop.
+Management never decides that an operation is required. The caller chooses
+whether to invoke a management capability, retry it, select another channel, or
+stop.
+
+## Vertical package ownership
+
+Built-in management contracts live with the platform that owns them:
+
+```python
+from desktop_window.management import WindowActivator, WindowMove
+from adb.management import AdbTransportPreparer, AdbTransportPreparation
+```
+
+The previous `management.window` and `management.adb` namespaces remain as
+compatibility facades. `execution.window` is also retained temporarily for older
+Window-management imports. All compatibility paths resolve to the canonical
+vertical objects; they do not define duplicate models or implementations.
 
 ## Window management
 
-`management.window` is the canonical port namespace for:
+`desktop_window.management` owns:
 
 - activation;
 - minimize and restore;
 - move and resize; and
 - atomic outer-bounds changes when supported.
 
-Window command models remain shared with `execution.window.domain` during the
-staged migration so existing imports and native-coordinate types remain
-compatible. `execution.window.ports` is a compatibility facade that re-exports
-the management ports and owns no implementation.
-
 An activation request is not a focus guarantee. A move or resize result does not
 prove that the requested geometry persisted. Callers observe
-`desktop_window.observation.WindowChannelState` again to establish current window
+`desktop_window.observation.WindowChannelState` again to establish current Window
 facts.
+
+Window-management commands use `native_coordinates.ScreenPoint` for virtual-screen
+positions. The older `execution.control.ScreenPoint` name is a compatibility alias
+to the same value type.
 
 ## ADB management
 
-`management.adb` defines explicit capabilities for:
+`adb.management` owns explicit capabilities for:
 
 - starting and stopping the configured ADB server;
 - preparing one configured ADB control channel; and
@@ -61,32 +79,38 @@ Management does not authorize a device automatically, choose a device, or hide
 retry and fallback policy inside observation. Expected blockers remain visible
 through the next `adb.observation.AdbChannelState`.
 
-## Operation results
+## Native operation results
 
-The current migration reuses `ExecutionOperationResult` as the synchronous
-native-attempt report for management ports. Success means that the backend
-completed its requested native operation. It does not prove that the server or
-transport is now ready, or that a window reached its desired state.
+Management and Execution ports return `native_operation.NativeOperationResult`.
+Success means that the backend completed its requested native attempt. It does not
+prove that a server or transport is now ready, that a Window reached its requested
+state, or that an application-level effect occurred.
 
-Callers must reacquire the owning platform observation state before relying on the
+The previous `ExecutionOperationResult` and `ExecutionOperationStatus` names remain
+available from `execution.control` and `execution` as compatibility aliases to the
+neutral native-operation values.
+
+Callers must reacquire the owning platform observation state before relying on a
 changed condition.
 
 ## Dependency direction
 
 ```text
-desktop_window.observation / adb.observation
+observation.target_runtime identities
                     │
                     ▼
-          caller preparation decision
-                    │
-                    ▼
-             management ports
-                    │
-                    ▼
-             platform adapters
-                    │
-                    ▼
-         fresh platform observation
+desktop_window.management / adb.management
+          │                       │
+          ├── native_coordinates  │
+          └──────────┬────────────┘
+                     ▼
+              native_operation
+                     │
+                     ▼
+              platform adapters
+                     │
+                     ▼
+          fresh platform observation
 
 fresh runtime + content ──────► execution preflight and input
 ```
@@ -96,16 +120,17 @@ retries, or claim application-level success.
 
 ## Migration status
 
-The staged migration currently establishes:
+The current migration establishes:
 
 - generic target and channel contracts under `observation.target_runtime`;
 - Window observation under `desktop_window.observation`;
 - ADB observation under `adb.observation`;
-- lazy compatibility aliases for previous Target Runtime platform imports;
-- Window management ports under `management.window`;
-- ADB server and transport management ports under `management.adb`;
-- `execution.window.ports` as a temporary compatibility facade; and
-- target lifecycle and application input under `execution`.
+- Window management under `desktop_window.management`;
+- ADB server and transport management under `adb.management`;
+- neutral native coordinates under `native_coordinates`;
+- neutral native-attempt results under `native_operation`; and
+- compatibility facades under `management.window`, `management.adb`,
+  `execution.window`, and `execution.control`.
 
-Moving Window command models, management ports, shared native-coordinate values,
-or operation-result values into fully vertical packages is intentionally deferred.
+Moving shared target and channel identities out of the observation namespace, or
+adding stronger platform-specific identity types, remains intentionally deferred.

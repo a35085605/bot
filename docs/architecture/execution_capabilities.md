@@ -3,8 +3,8 @@
 ## Purpose
 
 The `execution` package owns contracts for caller-selected application
-interaction. `target_runtime` remains read-only, while optional channel or host
-preparation belongs to `management`.
+interaction. Target Runtime remains read-only, while channel or host
+administration belongs to platform management packages.
 
 ```text
 Fresh Target Runtime snapshots
@@ -24,33 +24,37 @@ lifecycle input   target resolution
 The package is divided into independently implementable capability families:
 
 - `execution.lifecycle`: launch, orderly close, forced termination, and restart;
-- `execution.input`: pointer, keyboard, text, and navigation operations;
-- `execution.control`: shared native coordinate and operation-result values; and
+- `execution.input`: pointer, keyboard, text, and navigation operations; and
 - `execution.ports`: execution-time target resolution.
 
+Shared native-coordinate values live under `native_coordinates`, while synchronous
+native-attempt reports live under `native_operation`. The `execution.control`
+namespace remains as a compatibility facade for their previous names.
+
 Window activation and geometry management are canonical under
-`management.window`. The `execution.window` namespace remains temporarily for
-import compatibility.
+`desktop_window.management`. The `management.window` and `execution.window`
+namespaces remain temporarily for import compatibility.
 
 No adapter is required to implement every family. A desktop adapter may expose
-window-management and screen-input capabilities, while an ADB adapter may expose
-transport-management, device-input, and lifecycle capabilities.
+Window management and screen-input capabilities, while an ADB adapter may expose
+transport management, device input, and lifecycle capabilities.
 
-## Shared operation result
+## Shared native operation result
 
-Execution capability ports return `ExecutionOperationResult`. The first
-management migration stage also reuses this result for synchronous management
-attempts. Success means only that the backend completed the requested native
-attempt. It does not prove that:
+Execution capability ports return `NativeOperationResult`. Success means only that
+the backend completed the requested native attempt. It does not prove that:
 
 - a target became available or missing;
 - a control channel became ready;
-- a window remained focused or reached the requested geometry;
+- a Window remained focused or reached the requested geometry;
 - the intended semantic control received input; or
 - an expected world-state transition occurred.
 
-Those facts must be acquired again through observation and evaluated by caller
-owned effect verification.
+Those facts must be acquired again through observation and evaluated by
+caller-owned effect verification.
+
+`ExecutionOperationResult` and `ExecutionOperationStatus` remain compatibility
+aliases to `NativeOperationResult` and `NativeOperationStatus`.
 
 ## Lifecycle
 
@@ -67,15 +71,15 @@ instead compose close or terminate, observe `MISSING`, launch, and observe
 
 ## Window compatibility
 
-Window commands address one native `window_id` and remain available from
-`execution.window` and the top-level `execution` package during the migration.
-The canonical management ports now live under `management.window`.
+Window-management commands and ports are canonical under
+`desktop_window.management`. Existing imports from `management.window`,
+`execution.window`, and the top-level `execution` package resolve to the same
+objects during the staged migration.
 
-New code should import window-management ports from `management.window`.
-`execution.window.ports` re-exports those ports and owns no implementation.
+New code should use `desktop_window.management`.
 
 See [Management capabilities](management_capabilities.md) for activation,
-minimize, restore, move, resize, bounds, and ADB preparation contracts.
+minimize, restore, move, resize, bounds, and ADB administration contracts.
 
 ## Input
 
@@ -86,21 +90,25 @@ Input contracts remain backend-neutral and retain the existing capability split:
 - text entry; and
 - Back navigation.
 
-`ScreenPoint` permits negative virtual-screen coordinates. `DevicePoint` rejects
-negative coordinates. Conversion from content-space intent to either native
-space remains the responsibility of `ExecutionTargetResolver` immediately before
-an input effect.
+`native_coordinates.ScreenPoint` permits negative virtual-screen coordinates.
+`native_coordinates.DevicePoint` rejects negative coordinates. Existing imports
+from `execution.control` and `execution` resolve to those same types.
+
+Conversion from content-space intent to either native space remains the
+responsibility of `ExecutionTargetResolver` immediately before an input effect.
 
 ## Dependency direction
 
 ```text
 target_runtime ───────────────► execution orchestration and preflight
 content ──────────────────────► execution target resolution
-execution.control ────────────► lifecycle / input ports
-execution capability ports ───► concrete platform adapters
+native_coordinates ──────────► input operations and target resolution
+native_operation ────────────► lifecycle / input / management ports
+execution capability ports ──► concrete platform adapters
 
-target_runtime ───────────────► management decision and preparation
-management ports ─────────────► concrete platform adapters
+target_runtime ───────────────► management decision and administration
+desktop_window.management ───► concrete desktop adapters
+adb.management ──────────────► concrete ADB adapters
 ```
 
 Execution capability packages must not inspect visual semantics, choose policy,
@@ -109,9 +117,8 @@ that higher-level orchestration can select, sequence, and verify.
 
 ## Compatibility
 
-The top-level `control` package is retained temporarily as a compatibility facade.
-New code should import native values from `execution` or `execution.control`.
+`execution.control` is retained temporarily as a compatibility facade for native
+coordinates and operation-result names.
 
-The `execution.window` package is also retained during the first management
-migration stage. New window-management port imports should use
-`management.window`.
+`execution.window` is retained temporarily as a compatibility facade for
+`desktop_window.management`.
