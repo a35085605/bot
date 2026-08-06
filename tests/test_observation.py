@@ -20,10 +20,10 @@ from observation.capture import (
 )
 from observation.target_runtime import (
     TargetAvailability,
-    TargetId,
     TargetRuntimeSnapshot,
 )
 from observation.temporal import TemporalSnapshot
+from target import TargetId
 
 
 class ObservationTest(unittest.TestCase):
