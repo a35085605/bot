@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
-from observation.target_runtime.domain.channels import (
-    AdbChannelState,
-    ControlChannelSnapshot,
-    WindowChannelState,
-)
+from observation.target_runtime.domain.channels import ControlChannelSnapshot
 from observation.target_runtime.domain.identities import TargetId
 from observation.target_runtime.domain.snapshots import TargetRuntimeSnapshot
+
+if TYPE_CHECKING:
+    from adb.observation.ports import AdbChannelInspector
+    from desktop_window.observation.ports import WindowChannelInspector
 
 
 ControlChannelStateT_co = TypeVar(
@@ -24,8 +24,8 @@ class ControlChannelInspector(Protocol[ControlChannelStateT_co]):
     immutable readiness snapshot. They must not prepare the channel, reconnect a
     transport, change focus, or send input.
 
-    External packages may specialize this protocol with their own detail model
-    and ``ControlChannelKind`` value without modifying the core package.
+    Platform and external packages may specialize this protocol with their own
+    detail model and ``ControlChannelKind`` value without modifying the core.
     """
 
     def inspect(
@@ -34,20 +34,6 @@ class ControlChannelInspector(Protocol[ControlChannelStateT_co]):
     ) -> ControlChannelSnapshot[ControlChannelStateT_co]:
         """Acquire one channel snapshot for ``target_id``."""
         ...
-
-
-class WindowChannelInspector(
-    ControlChannelInspector[WindowChannelState],
-    Protocol,
-):
-    """Inspect one desktop-window channel without changing window state."""
-
-
-class AdbChannelInspector(
-    ControlChannelInspector[AdbChannelState],
-    Protocol,
-):
-    """Inspect one ADB channel without changing server or device state."""
 
 
 class TargetRuntimeInspector(Protocol):
@@ -65,3 +51,25 @@ class TargetRuntimeInspector(Protocol):
     def inspect(self, target_id: TargetId) -> TargetRuntimeSnapshot:
         """Acquire one timestamped operational snapshot for ``target_id``."""
         ...
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily retain pre-migration platform inspector imports."""
+
+    if name == "AdbChannelInspector":
+        from adb.observation.ports import AdbChannelInspector
+
+        return AdbChannelInspector
+    if name == "WindowChannelInspector":
+        from desktop_window.observation.ports import WindowChannelInspector
+
+        return WindowChannelInspector
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+__all__ = [
+    "AdbChannelInspector",
+    "ControlChannelInspector",
+    "TargetRuntimeInspector",
+    "WindowChannelInspector",
+]
