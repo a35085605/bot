@@ -1,3 +1,10 @@
+"""Execution-time target-resolution contracts.
+
+Input and lifecycle remain independent capability families. Import those
+contracts from ``execution.input`` and ``execution.lifecycle`` rather than
+through this root package.
+"""
+
 from execution.domain import (
     ContentPointTarget,
     ContentRectTarget,
@@ -6,76 +13,14 @@ from execution.domain import (
     ExecutionTargetUnavailable,
     ResolvedExecutionTarget,
 )
-from execution.input import (
-    BackNavigator,
-    Key,
-    KeyChord,
-    KeyChordController,
-    KeyDown,
-    KeyPress,
-    KeyPresser,
-    KeyStateController,
-    KeyUp,
-    PointerButton,
-    PointerClick,
-    PointerClicker,
-    PointerDrag,
-    PointerDragger,
-    PointerMove,
-    PointerMover,
-    PointerScroll,
-    PointerScroller,
-    ScrollDelta,
-    TextController,
-    TextEntry,
-)
-from execution.lifecycle import (
-    TargetClose,
-    TargetCloser,
-    TargetLaunch,
-    TargetLauncher,
-    TargetRestart,
-    TargetRestarter,
-    TargetTermination,
-    TargetTerminator,
-)
 from execution.ports import ExecutionTargetResolver
 
 __all__ = [
-    "BackNavigator",
     "ContentPointTarget",
     "ContentRectTarget",
     "ExecutionTargetFailureReason",
     "ExecutionTargetResolution",
     "ExecutionTargetResolver",
     "ExecutionTargetUnavailable",
-    "Key",
-    "KeyChord",
-    "KeyChordController",
-    "KeyDown",
-    "KeyPress",
-    "KeyPresser",
-    "KeyStateController",
-    "KeyUp",
-    "PointerButton",
-    "PointerClick",
-    "PointerClicker",
-    "PointerDrag",
-    "PointerDragger",
-    "PointerMove",
-    "PointerMover",
-    "PointerScroll",
-    "PointerScroller",
     "ResolvedExecutionTarget",
-    "ScrollDelta",
-    "TargetClose",
-    "TargetCloser",
-    "TargetLaunch",
-    "TargetLauncher",
-    "TargetRestart",
-    "TargetRestarter",
-    "TargetTermination",
-    "TargetTerminator",
-    "TextController",
-    "TextEntry",
 ]
