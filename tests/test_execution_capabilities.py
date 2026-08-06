@@ -12,7 +12,7 @@ from desktop_window.management import (
     WindowResize,
     WindowRestore,
 )
-from execution import (
+from execution.input import (
     Key,
     KeyChord,
     KeyPress,
@@ -21,14 +21,15 @@ from execution import (
     PointerDrag,
     PointerScroll,
     ScrollDelta,
+    TextEntry,
+)
+from execution.lifecycle import (
     TargetClose,
     TargetLaunch,
     TargetRestart,
     TargetTermination,
-    TextEntry,
 )
-from geometry.rect import Rect
-from geometry.size import Size
+from geometry import Rect, Size
 from native_coordinates import DevicePoint, ScreenPoint
 from native_operation import NativeOperationResult, NativeOperationStatus
 from target import TargetId
@@ -78,7 +79,11 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
         control = Key(" control ")
         enter = Key("enter")
         chord = KeyChord((control, Key("a")))
-        press = KeyPress(enter, repeat=2, interval=timedelta(milliseconds=25))
+        press = KeyPress(
+            enter,
+            repeat=2,
+            interval=timedelta(milliseconds=25),
+        )
         self.assertEqual(operation.delta.vertical_steps, -3)
         self.assertEqual(control.value, "control")
         self.assertEqual(len(chord.keys), 2)
@@ -95,7 +100,10 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
         target_id = TargetId(" game ")
         self.assertEqual(TargetLaunch(target_id).target_id, TargetId("game"))
         self.assertEqual(TargetClose(target_id).target_id, TargetId("game"))
-        self.assertEqual(TargetTermination(target_id).target_id, TargetId("game"))
+        self.assertEqual(
+            TargetTermination(target_id).target_id,
+            TargetId("game"),
+        )
         self.assertEqual(TargetRestart(target_id).target_id, TargetId("game"))
         with self.assertRaises(TypeError):
             TargetLaunch("game")  # type: ignore[arg-type]
@@ -109,7 +117,10 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
             WindowMove(window_id, ScreenPoint(-100, 20)).top_left_screen,
             ScreenPoint(-100, 20),
         )
-        self.assertEqual(WindowResize(window_id, Size(1280, 720)).size, Size(1280, 720))
+        self.assertEqual(
+            WindowResize(window_id, Size(1280, 720)).size,
+            Size(1280, 720),
+        )
         self.assertEqual(
             WindowBoundsChange(
                 window_id,
