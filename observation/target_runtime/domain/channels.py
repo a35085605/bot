@@ -3,14 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
-from observation.target_runtime.domain.identities import (
-    ControlChannelId,
-    ReadinessBlocker,
-)
-from observation.target_runtime.domain.readiness import (
+from control_channel import (
     ControlCapability,
+    ControlChannelId,
     ControlChannelKind,
     ControlChannelStatus,
+    ReadinessBlocker,
 )
 
 
