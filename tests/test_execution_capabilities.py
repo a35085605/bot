@@ -31,17 +31,15 @@ from geometry.rect import Rect
 from geometry.size import Size
 from native_coordinates import DevicePoint, ScreenPoint
 from native_operation import NativeOperationResult, NativeOperationStatus
-from observation.target_runtime import TargetId
+from target import TargetId
 
 
 class ExecutionCapabilityDomainTest(unittest.TestCase):
     def test_native_coordinate_types_keep_platform_rules_explicit(self) -> None:
         screen = ScreenPoint(-1200, 50)
         device = DevicePoint(1200, 50)
-
         self.assertEqual((screen.x, screen.y), (-1200, 50))
         self.assertEqual((device.x, device.y), (1200, 50))
-
         with self.assertRaises(ValueError):
             DevicePoint(-1, 0)
         with self.assertRaises(TypeError):
@@ -59,7 +57,6 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
             end=DevicePoint(50, 80),
             duration=timedelta(milliseconds=300),
         )
-
         self.assertEqual(click.count, 2)
         self.assertEqual(drag.button, PointerButton.LEFT)
         with self.assertRaises(FrozenInstanceError):
@@ -81,18 +78,12 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
         control = Key(" control ")
         enter = Key("enter")
         chord = KeyChord((control, Key("a")))
-        press = KeyPress(
-            enter,
-            repeat=2,
-            interval=timedelta(milliseconds=25),
-        )
-
+        press = KeyPress(enter, repeat=2, interval=timedelta(milliseconds=25))
         self.assertEqual(operation.delta.vertical_steps, -3)
         self.assertEqual(control.value, "control")
         self.assertEqual(len(chord.keys), 2)
         self.assertEqual(press.repeat, 2)
         self.assertEqual(TextEntry("你好").text, "你好")
-
         with self.assertRaises(ValueError):
             ScrollDelta()
         with self.assertRaises(ValueError):
@@ -102,18 +93,15 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
 
     def test_lifecycle_commands_are_target_aware(self) -> None:
         target_id = TargetId(" game ")
-
         self.assertEqual(TargetLaunch(target_id).target_id, TargetId("game"))
         self.assertEqual(TargetClose(target_id).target_id, TargetId("game"))
         self.assertEqual(TargetTermination(target_id).target_id, TargetId("game"))
         self.assertEqual(TargetRestart(target_id).target_id, TargetId("game"))
-
         with self.assertRaises(TypeError):
             TargetLaunch("game")  # type: ignore[arg-type]
 
     def test_window_commands_split_state_and_geometry_capabilities(self) -> None:
         window_id = " hwnd:42 "
-
         self.assertEqual(WindowActivation(window_id).window_id, "hwnd:42")
         self.assertEqual(WindowMinimize(window_id).window_id, "hwnd:42")
         self.assertEqual(WindowRestore(window_id).window_id, "hwnd:42")
@@ -121,10 +109,7 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
             WindowMove(window_id, ScreenPoint(-100, 20)).top_left_screen,
             ScreenPoint(-100, 20),
         )
-        self.assertEqual(
-            WindowResize(window_id, Size(1280, 720)).size,
-            Size(1280, 720),
-        )
+        self.assertEqual(WindowResize(window_id, Size(1280, 720)).size, Size(1280, 720))
         self.assertEqual(
             WindowBoundsChange(
                 window_id,
@@ -142,7 +127,6 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
             started_at=started,
             finished_at=finished,
         )
-
         self.assertEqual(result.backend_id, "win32")
         with self.assertRaises(ValueError):
             NativeOperationResult(
