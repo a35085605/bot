@@ -36,13 +36,14 @@ to invoke a management capability, retry it, select another channel, or stop.
 - atomic outer-bounds changes when supported.
 
 Window command models remain shared with `execution.window.domain` during the
-first migration stage so existing imports and native-coordinate types remain
+staged migration so existing imports and native-coordinate types remain
 compatible. `execution.window.ports` is a compatibility facade that re-exports
 the management ports and owns no implementation.
 
 An activation request is not a focus guarantee. A move or resize result does not
-prove that the requested geometry persisted. Callers observe Target Runtime again
-to establish the current window facts.
+prove that the requested geometry persisted. Callers observe
+`desktop_window.observation.WindowChannelState` again to establish current window
+facts.
 
 ## ADB management
 
@@ -58,31 +59,34 @@ transport details outside these core operation values.
 
 Management does not authorize a device automatically, choose a device, or hide
 retry and fallback policy inside observation. Expected blockers remain visible
-through the next `AdbChannelState`.
+through the next `adb.observation.AdbChannelState`.
 
 ## Operation results
 
-The first migration stage reuses `ExecutionOperationResult` as the synchronous
+The current migration reuses `ExecutionOperationResult` as the synchronous
 native-attempt report for management ports. Success means that the backend
 completed its requested native operation. It does not prove that the server or
 transport is now ready, or that a window reached its desired state.
 
-Callers must reacquire Target Runtime state before relying on the changed
-condition.
+Callers must reacquire the owning platform observation state before relying on the
+changed condition.
 
 ## Dependency direction
 
 ```text
-observation.target_runtime ───► caller preparation decision
-                                         │
-                                         ▼
-                                 management ports
-                                         │
-                                         ▼
-                                  platform adapters
-                                         │
-                                         ▼
-                              fresh runtime observation
+desktop_window.observation / adb.observation
+                    │
+                    ▼
+          caller preparation decision
+                    │
+                    ▼
+             management ports
+                    │
+                    ▼
+             platform adapters
+                    │
+                    ▼
+         fresh platform observation
 
 fresh runtime + content ──────► execution preflight and input
 ```
@@ -92,13 +96,16 @@ retries, or claim application-level success.
 
 ## Migration status
 
-This is the first boundary-migration stage:
+The staged migration currently establishes:
 
-- Window management ports are canonical under `management.window`.
-- `execution.window.ports` remains as a compatibility facade.
-- Window command models remain under `execution.window.domain`.
-- ADB server and transport management contracts are newly explicit.
-- Target lifecycle and application input remain under `execution`.
+- generic target and channel contracts under `observation.target_runtime`;
+- Window observation under `desktop_window.observation`;
+- ADB observation under `adb.observation`;
+- lazy compatibility aliases for previous Target Runtime platform imports;
+- Window management ports under `management.window`;
+- ADB server and transport management ports under `management.adb`;
+- `execution.window.ports` as a temporary compatibility facade; and
+- target lifecycle and application input under `execution`.
 
-Moving shared native-coordinate and operation-result values to a neutral package,
-or removing compatibility imports, is intentionally deferred.
+Moving Window command models, management ports, shared native-coordinate values,
+or operation-result values into fully vertical packages is intentionally deferred.

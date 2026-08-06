@@ -29,7 +29,7 @@ consumer composition
         │                         │
         │                         ▼
         └──────────────► public interaction contracts
-                          ├── observation
+                          ├── observation.target_runtime
                           ├── management
                           ├── content and targeting
                           ├── detector_input and evidence
@@ -41,10 +41,27 @@ An external extension may depend on public interaction contracts. Core packages
 must not import an extension, and the core must remain usable when every extension
 is absent.
 
+## Built-in vertical packages
+
+The repository's built-in Window and ADB observation contracts follow the same
+ownership pattern expected of external channel packages:
+
+```text
+observation.target_runtime       platform-neutral channel kernel
+           ▲                              ▲
+           │                              │
+desktop_window.observation       adb.observation
+Window detail + inspector        ADB detail + inspector
+```
+
+The generic Target Runtime core does not eagerly import those platform packages.
+Compatibility imports resolve lazily, while new code imports from the package that
+owns the platform model.
+
 ## Control-channel extensions
 
-An external package may add a control-channel family without editing a core enum
-or union. It defines its own detail model, constructs a stable
+An external package may add a control-channel family without editing a core enum,
+union, or platform package. It defines its own detail model, constructs a stable
 `ControlChannelKind`, and implements the generic inspection or capability ports it
 needs.
 
@@ -76,6 +93,19 @@ The extension owns validation that its inspector emits `WEB_DRIVER` snapshots wi
 does not register, discover, or enforce extension-specific kind-to-detail pairs.
 The consuming application explicitly composes the inspector and any associated
 management or execution adapters.
+
+A mature channel extension may use a vertical layout similar to the built-in
+packages:
+
+```text
+webdriver_channel/
+├── observation/
+├── management/
+├── execution/
+└── adapters/
+```
+
+Only the capability families that the extension actually supports are required.
 
 ## Repository ownership
 

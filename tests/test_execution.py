@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import unittest
 
 from content import ContentFrame, ContentPlacementInCapture
+from desktop_window.observation import FocusStatus, WindowChannelState
 from execution import (
     ContentPointTarget,
     ExecutionTargetFailureReason,
@@ -26,11 +27,9 @@ from observation.target_runtime import (
     ControlChannelKind,
     ControlChannelSnapshot,
     ControlChannelStatus,
-    FocusStatus,
     TargetAvailability,
     TargetId,
     TargetRuntimeSnapshot,
-    WindowChannelState,
 )
 
 
