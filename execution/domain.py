@@ -5,20 +5,18 @@ from datetime import datetime
 from enum import Enum
 from typing import Generic, TypeAlias, TypeVar
 
+from control_channel import ControlChannelId
 from geometry.point import Point
 from geometry.rect import Rect
 from observation.capture import FrameId
-from observation.target_runtime.domain.identities import ControlChannelId, TargetId
-
+from target import TargetId
 
 NativePointT = TypeVar("NativePointT")
 
 
 def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
     if not isinstance(value, str):
-        raise TypeError(
-            f"{field_name} must be a string, got {type(value).__name__}"
-        )
+        raise TypeError(f"{field_name} must be a string, got {type(value).__name__}")
     normalized = value.strip()
     if not normalized:
         raise ValueError(f"{field_name} cannot be empty")
@@ -27,8 +25,6 @@ def _normalize_non_empty_text(value: object, *, field_name: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ContentPointTarget:
-    """A point selected from one semantic content observation."""
-
     frame_id: FrameId
     source_id: str
     point_content: Point
@@ -38,20 +34,11 @@ class ContentPointTarget:
             raise TypeError("frame_id must be FrameId")
         if not isinstance(self.point_content, Point):
             raise TypeError("point_content must be Point")
-        object.__setattr__(
-            self,
-            "source_id",
-            _normalize_non_empty_text(
-                self.source_id,
-                field_name="content target source id",
-            ),
-        )
+        object.__setattr__(self, "source_id", _normalize_non_empty_text(self.source_id, field_name="content target source id"))
 
 
 @dataclass(frozen=True, slots=True)
 class ContentRectTarget:
-    """A rectangle selected from one semantic content observation."""
-
     frame_id: FrameId
     source_id: str
     bounds_content: Rect
@@ -61,14 +48,7 @@ class ContentRectTarget:
             raise TypeError("frame_id must be FrameId")
         if not isinstance(self.bounds_content, Rect):
             raise TypeError("bounds_content must be Rect")
-        object.__setattr__(
-            self,
-            "source_id",
-            _normalize_non_empty_text(
-                self.source_id,
-                field_name="content target source id",
-            ),
-        )
+        object.__setattr__(self, "source_id", _normalize_non_empty_text(self.source_id, field_name="content target source id"))
 
 
 class ExecutionTargetFailureReason(str, Enum):
@@ -91,20 +71,11 @@ class ExecutionTargetUnavailable:
         if not isinstance(self.reason, ExecutionTargetFailureReason):
             raise TypeError("reason must be ExecutionTargetFailureReason")
         if self.diagnostic is not None:
-            object.__setattr__(
-                self,
-                "diagnostic",
-                _normalize_non_empty_text(
-                    self.diagnostic,
-                    field_name="execution target diagnostic",
-                ),
-            )
+            object.__setattr__(self, "diagnostic", _normalize_non_empty_text(self.diagnostic, field_name="execution target diagnostic"))
 
 
 @dataclass(frozen=True, slots=True)
 class ResolvedExecutionTarget(Generic[NativePointT]):
-    """Native target resolved immediately before an external side effect."""
-
     source_frame_id: FrameId
     source_id: str
     target_id: TargetId
@@ -125,16 +96,7 @@ class ResolvedExecutionTarget(Generic[NativePointT]):
             raise TypeError("resolved_at must be datetime")
         if self.resolved_at.utcoffset() is None:
             raise ValueError("resolved_at must be timezone-aware")
-        object.__setattr__(
-            self,
-            "source_id",
-            _normalize_non_empty_text(
-                self.source_id,
-                field_name="resolved target source id",
-            ),
-        )
+        object.__setattr__(self, "source_id", _normalize_non_empty_text(self.source_id, field_name="resolved target source id"))
 
 
-ExecutionTargetResolution: TypeAlias = (
-    ResolvedExecutionTarget[NativePointT] | ExecutionTargetUnavailable
-)
+ExecutionTargetResolution: TypeAlias = ResolvedExecutionTarget[NativePointT] | ExecutionTargetUnavailable
