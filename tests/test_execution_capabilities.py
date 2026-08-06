@@ -4,24 +4,7 @@ from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 import unittest
 
-from execution import (
-    DevicePoint,
-    ExecutionOperationResult,
-    ExecutionOperationStatus,
-    Key,
-    KeyChord,
-    KeyPress,
-    PointerButton,
-    PointerClick,
-    PointerDrag,
-    PointerScroll,
-    ScreenPoint,
-    ScrollDelta,
-    TargetClose,
-    TargetLaunch,
-    TargetRestart,
-    TargetTermination,
-    TextEntry,
+from desktop_window.management import (
     WindowActivation,
     WindowBoundsChange,
     WindowMinimize,
@@ -29,8 +12,25 @@ from execution import (
     WindowResize,
     WindowRestore,
 )
+from execution import (
+    Key,
+    KeyChord,
+    KeyPress,
+    PointerButton,
+    PointerClick,
+    PointerDrag,
+    PointerScroll,
+    ScrollDelta,
+    TargetClose,
+    TargetLaunch,
+    TargetRestart,
+    TargetTermination,
+    TextEntry,
+)
 from geometry.rect import Rect
 from geometry.size import Size
+from native_coordinates import DevicePoint, ScreenPoint
+from native_operation import NativeOperationResult, NativeOperationStatus
 from observation.target_runtime import TargetId
 
 
@@ -136,8 +136,8 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
     def test_operation_result_reports_native_attempt_only(self) -> None:
         started = datetime(2026, 7, 31, 0, 0, tzinfo=timezone.utc)
         finished = started + timedelta(milliseconds=5)
-        result = ExecutionOperationResult(
-            status=ExecutionOperationStatus.SUCCEEDED,
+        result = NativeOperationResult(
+            status=NativeOperationStatus.SUCCEEDED,
             backend_id=" win32 ",
             started_at=started,
             finished_at=finished,
@@ -145,8 +145,8 @@ class ExecutionCapabilityDomainTest(unittest.TestCase):
 
         self.assertEqual(result.backend_id, "win32")
         with self.assertRaises(ValueError):
-            ExecutionOperationResult(
-                status=ExecutionOperationStatus.FAILED,
+            NativeOperationResult(
+                status=NativeOperationStatus.FAILED,
                 backend_id="test",
                 started_at=finished,
                 finished_at=started,

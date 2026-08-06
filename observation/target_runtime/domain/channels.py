@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from observation.target_runtime.domain.identities import (
     ControlChannelId,
@@ -12,10 +12,6 @@ from observation.target_runtime.domain.readiness import (
     ControlChannelKind,
     ControlChannelStatus,
 )
-
-if TYPE_CHECKING:
-    from adb.observation.domain import AdbChannelState
-    from desktop_window.observation.domain import WindowChannelState
 
 
 ControlChannelStateT_co = TypeVar(
@@ -89,22 +85,4 @@ class ControlChannelSnapshot(Generic[ControlChannelStateT_co]):
         return capability in self.capabilities
 
 
-def __getattr__(name: str) -> Any:
-    """Lazily retain pre-migration platform detail imports."""
-
-    if name == "AdbChannelState":
-        from adb.observation.domain import AdbChannelState
-
-        return AdbChannelState
-    if name == "WindowChannelState":
-        from desktop_window.observation.domain import WindowChannelState
-
-        return WindowChannelState
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-__all__ = [
-    "AdbChannelState",
-    "ControlChannelSnapshot",
-    "WindowChannelState",
-]
+__all__ = ["ControlChannelSnapshot"]

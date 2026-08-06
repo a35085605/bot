@@ -44,7 +44,8 @@ for:
 - generic target availability and control-channel snapshot contracts;
 - built-in Window observation under `desktop_window.observation`;
 - built-in ADB observation under `adb.observation`;
-- Window management and ADB server or transport preparation capabilities;
+- Window management under `desktop_window.management`;
+- ADB server or transport management under `adb.management`;
 - visual-to-logical target binding and execution-time target resolution;
 - lifecycle, pointer, keyboard, text, and navigation effects;
 - optional detector-input and evidence primitives;
@@ -76,9 +77,8 @@ from desktop_window.observation import (
 )
 ```
 
-Previous imports from `observation.target_runtime` remain available as lazy
-compatibility aliases. New code should use the vertical package that owns the
-platform-specific model.
+Platform-specific contracts are imported from the vertical package that owns the
+model. The Target Runtime core exposes only platform-neutral contracts.
 
 ## External extensions
 
@@ -120,7 +120,7 @@ consumer composition
 └── interaction contracts from this repository
     ├── observation.target_runtime (platform-neutral core)
     ├── desktop_window.observation / adb.observation
-    ├── management
+    ├── desktop_window.management / adb.management
     ├── content and targeting
     ├── execution
     └── optional sensing primitives
@@ -130,17 +130,17 @@ consumer composition
 ```
 
 Platform-specific packages depend on the generic Target Runtime contracts. The
-Target Runtime core does not eagerly import Window, ADB, external extensions, or
+Target Runtime core does not import Window, ADB, external extensions, or
 caller-owned decision, state, workflow, or semantic models.
 
 See [`docs/architecture/observation_boundaries.md`](docs/architecture/observation_boundaries.md)
 for read-only observation families and freshness rules.
 
 See [`docs/architecture/target_runtime.md`](docs/architecture/target_runtime.md)
-for generic channel contracts, vertical platform ownership, and compatibility.
+for generic channel contracts and vertical platform ownership.
 
 See [`docs/architecture/management_capabilities.md`](docs/architecture/management_capabilities.md)
-for Window and ADB channel preparation contracts.
+for Window and ADB channel administration contracts.
 
 See [`docs/architecture/content_boundaries.md`](docs/architecture/content_boundaries.md)
 and [`docs/architecture/capture_target_boundaries.md`](docs/architecture/capture_target_boundaries.md)

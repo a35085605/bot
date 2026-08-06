@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import Protocol, TypeVar
 
 from observation.target_runtime.domain.channels import ControlChannelSnapshot
 from observation.target_runtime.domain.identities import TargetId
 from observation.target_runtime.domain.snapshots import TargetRuntimeSnapshot
-
-if TYPE_CHECKING:
-    from adb.observation.ports import AdbChannelInspector
-    from desktop_window.observation.ports import WindowChannelInspector
 
 
 ControlChannelStateT_co = TypeVar(
@@ -53,23 +49,7 @@ class TargetRuntimeInspector(Protocol):
         ...
 
 
-def __getattr__(name: str) -> Any:
-    """Lazily retain pre-migration platform inspector imports."""
-
-    if name == "AdbChannelInspector":
-        from adb.observation.ports import AdbChannelInspector
-
-        return AdbChannelInspector
-    if name == "WindowChannelInspector":
-        from desktop_window.observation.ports import WindowChannelInspector
-
-        return WindowChannelInspector
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 __all__ = [
-    "AdbChannelInspector",
     "ControlChannelInspector",
     "TargetRuntimeInspector",
-    "WindowChannelInspector",
 ]

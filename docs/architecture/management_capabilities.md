@@ -40,10 +40,9 @@ from desktop_window.management import WindowActivator, WindowMove
 from adb.management import AdbTransportPreparer, AdbTransportPreparation
 ```
 
-The previous `management.window` and `management.adb` namespaces remain as
-compatibility facades. `execution.window` is also retained temporarily for older
-Window-management imports. All compatibility paths resolve to the canonical
-vertical objects; they do not define duplicate models or implementations.
+Window and ADB management contracts are not re-exported through a shared
+top-level management namespace. Callers import directly from the owning vertical
+package.
 
 ## Window management
 
@@ -59,9 +58,8 @@ prove that the requested geometry persisted. Callers observe
 `desktop_window.observation.WindowChannelState` again to establish current Window
 facts.
 
-Window-management commands use `native_coordinates.ScreenPoint` for virtual-screen
-positions. The older `execution.control.ScreenPoint` name is a compatibility alias
-to the same value type.
+Window-management commands use `native_coordinates.ScreenPoint` for
+virtual-screen positions.
 
 ## ADB management
 
@@ -85,10 +83,6 @@ Management and Execution ports return `native_operation.NativeOperationResult`.
 Success means that the backend completed its requested native attempt. It does not
 prove that a server or transport is now ready, that a Window reached its requested
 state, or that an application-level effect occurred.
-
-The previous `ExecutionOperationResult` and `ExecutionOperationStatus` names remain
-available from `execution.control` and `execution` as compatibility aliases to the
-neutral native-operation values.
 
 Callers must reacquire the owning platform observation state before relying on a
 changed condition.
@@ -120,17 +114,16 @@ retries, or claim application-level success.
 
 ## Migration status
 
-The current migration establishes:
+The verticalization migration is complete:
 
-- generic target and channel contracts under `observation.target_runtime`;
-- Window observation under `desktop_window.observation`;
-- ADB observation under `adb.observation`;
-- Window management under `desktop_window.management`;
-- ADB server and transport management under `adb.management`;
-- neutral native coordinates under `native_coordinates`;
-- neutral native-attempt results under `native_operation`; and
-- compatibility facades under `management.window`, `management.adb`,
-  `execution.window`, and `execution.control`.
+- generic target and channel contracts live under
+  `observation.target_runtime`;
+- Window observation lives under `desktop_window.observation`;
+- ADB observation lives under `adb.observation`;
+- Window management lives under `desktop_window.management`;
+- ADB server and transport management live under `adb.management`;
+- neutral native coordinates live under `native_coordinates`; and
+- neutral native-attempt results live under `native_operation`.
 
 Moving shared target and channel identities out of the observation namespace, or
 adding stronger platform-specific identity types, remains intentionally deferred.

@@ -10,10 +10,10 @@ from execution import (
     ExecutionTargetFailureReason,
     ExecutionTargetUnavailable,
     ResolvedExecutionTarget,
-    ScreenPoint,
 )
 from geometry.point import Point
 from geometry.rect import Rect
+from native_coordinates import ScreenPoint
 from observation.capture import (
     CaptureStreamId,
     CoordinateSpace,
