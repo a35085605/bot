@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import dataclass, FrozenInstanceError
 from datetime import datetime, timezone
 import unittest
 
@@ -10,6 +10,7 @@ from observation.target_runtime import (
     AdbDeviceStatus,
     ControlCapability,
     ControlChannelId,
+    ControlChannelInspector,
     ControlChannelKind,
     ControlChannelSnapshot,
     ControlChannelStatus,
@@ -21,6 +22,11 @@ from observation.target_runtime import (
     WindowChannelInspector,
     WindowChannelState,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class WebDriverChannelState:
+    session_id: str
 
 
 class StaticWindowChannelInspector:
@@ -50,6 +56,22 @@ class StaticAdbChannelInspector:
         self,
         target_id: TargetId,
     ) -> ControlChannelSnapshot[AdbChannelState]:
+        if not isinstance(target_id, TargetId):
+            raise TypeError("target_id must be TargetId")
+        return self._snapshot
+
+
+class StaticWebDriverChannelInspector:
+    def __init__(
+        self,
+        snapshot: ControlChannelSnapshot[WebDriverChannelState],
+    ) -> None:
+        self._snapshot = snapshot
+
+    def inspect(
+        self,
+        target_id: TargetId,
+    ) -> ControlChannelSnapshot[WebDriverChannelState]:
         if not isinstance(target_id, TargetId):
             raise TypeError("target_id must be TargetId")
         return self._snapshot
@@ -160,6 +182,33 @@ class TargetRuntimeTest(unittest.TestCase):
             AdbChannelState,
         )
 
+    def test_external_channel_kind_and_details_require_no_core_change(
+        self,
+    ) -> None:
+        channel = ControlChannelSnapshot(
+            channel_id=ControlChannelId("webdriver:primary"),
+            kind=ControlChannelKind(" webdriver "),
+            status=ControlChannelStatus.READY,
+            capabilities=frozenset({ControlCapability.POINTER}),
+            details=WebDriverChannelState(session_id="session-1"),
+        )
+        inspector: ControlChannelInspector[WebDriverChannelState] = (
+            StaticWebDriverChannelInspector(channel)
+        )
+
+        observed = inspector.inspect(TargetId("browser"))
+
+        self.assertEqual(observed.kind.value, "webdriver")
+        self.assertEqual(observed.details.session_id, "session-1")
+        self.assertEqual(ControlChannelKind.ADB, "adb")
+        self.assertEqual(
+            ControlChannelKind(" desktop_window "),
+            ControlChannelKind.DESKTOP_WINDOW,
+        )
+
+        with self.assertRaises(ValueError):
+            ControlChannelKind("  ")
+
     def test_window_focus_tracks_target_and_foreground_identity(self) -> None:
         with self.assertRaises(ValueError):
             WindowChannelState(
@@ -199,7 +248,7 @@ class TargetRuntimeTest(unittest.TestCase):
                 transport_ready=True,
             )
 
-    def test_channel_status_and_details_are_consistent(self) -> None:
+    def test_channel_status_invariants_are_platform_neutral(self) -> None:
         with self.assertRaises(ValueError):
             ControlChannelSnapshot(
                 channel_id=ControlChannelId("desktop"),
@@ -219,10 +268,18 @@ class TargetRuntimeTest(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             ControlChannelSnapshot(
-                channel_id=ControlChannelId("adb"),
-                kind=ControlChannelKind.ADB,
+                channel_id=ControlChannelId("custom"),
+                kind="custom",  # type: ignore[arg-type]
                 status=ControlChannelStatus.UNKNOWN,
-                details=WindowChannelState(),
+                details=WebDriverChannelState(session_id="session-1"),
+            )
+
+        with self.assertRaises(TypeError):
+            ControlChannelSnapshot(
+                channel_id=ControlChannelId("custom"),
+                kind=ControlChannelKind("custom"),
+                status=ControlChannelStatus.UNKNOWN,
+                details=None,
             )
 
     def test_snapshot_rejects_duplicate_channels_and_missing_ready_target(

@@ -39,6 +39,30 @@ Window, ADB, or future control channel is blocked, unavailable, or unknown.
 Each channel has its own identity, status, capabilities, blockers, and
 platform-specific detail.
 
+## Extensible channel contracts
+
+`ControlChannelKind` is a normalized string value rather than a closed enum.
+`ControlChannelKind.DESKTOP_WINDOW` and `ControlChannelKind.ADB` remain built-in
+constants, while an external package may construct another stable kind such as
+`ControlChannelKind("webdriver")` without changing this repository.
+
+`ControlChannelSnapshot[DetailsT]` is generic over its detail model. The core
+validates only platform-neutral invariants:
+
+- channel identity and kind types;
+- readiness status, capabilities, and blockers;
+- blocker consistency with readiness status; and
+- the presence of a non-null detail value.
+
+The concrete channel inspector, adapter, or package owns the relationship between
+a kind and its detail model. For example, a Window inspector returns
+`ControlChannelSnapshot[WindowChannelState]`, while an external WebDriver package
+may return its own snapshot specialization.
+
+The core does not register kinds, discover channel packages, or maintain a closed
+kind-to-detail mapping. Extension activation remains explicit in the consuming
+application's composition root.
+
 ## Read-only inspection
 
 The package defines immutable snapshots and inspection ports. Inspection must not
@@ -55,7 +79,7 @@ Target Runtime does not:
 Window and ADB preparation operations belong to `management` capability adapters.
 Application lifecycle and input operations belong to `execution` adapters.
 
-## Window and ADB channels
+## Built-in Window and ADB channels
 
 `WindowChannelState` records current operational window facts such as identity,
 process, title, client and outer bounds, focus relationship, minimized state,
@@ -64,14 +88,19 @@ visibility, and responsiveness.
 `AdbChannelState` records server reachability, selected device identity, device
 status, authorization, and transport readiness.
 
-These current runtime facts do not belong in `CapturedFrame`. Capture retains
-only the source identity and geometry required to explain one historical raster.
+These are built-in detail models, not an exhaustive list of supported channel
+families. External packages may define additional detail models and inspectors
+through the generic channel contracts.
+
+These current runtime facts do not belong in `CapturedFrame`. Capture retains only
+the source identity and geometry required to explain one historical raster.
 
 ## Per-channel inspection ports
 
 `ControlChannelInspector[ChannelState]` and its Window/ADB specializations allow
-platform adapters or test doubles to inspect one channel independently. An
-aggregate `TargetRuntimeInspector` may combine several inspectors into one
+platform adapters or test doubles to inspect one channel independently. External
+packages may specialize the same generic port with their own channel detail model.
+An aggregate `TargetRuntimeInspector` may combine several inspectors into one
 snapshot while establishing target-level availability separately.
 
 No channels, or no ready channels, does not prove that the target is missing.
@@ -95,3 +124,6 @@ between Capture, Target Runtime, Temporal, and caller-owned acquisition logic.
 
 See [Management capabilities](management_capabilities.md) for Window and ADB
 preparation contracts.
+
+See [External extensions](extensions.md) for package ownership and explicit
+composition rules for additional channel families.

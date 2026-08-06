@@ -30,6 +30,7 @@ consumer composition
         │                         ▼
         └──────────────► public interaction contracts
                           ├── observation
+                          ├── management
                           ├── content and targeting
                           ├── detector_input and evidence
                           ├── execution
@@ -39,6 +40,42 @@ consumer composition
 An external extension may depend on public interaction contracts. Core packages
 must not import an extension, and the core must remain usable when every extension
 is absent.
+
+## Control-channel extensions
+
+An external package may add a control-channel family without editing a core enum
+or union. It defines its own detail model, constructs a stable
+`ControlChannelKind`, and implements the generic inspection or capability ports it
+needs.
+
+```python
+from dataclasses import dataclass
+
+from observation.target_runtime import (
+    ControlChannelInspector,
+    ControlChannelKind,
+    ControlChannelSnapshot,
+)
+
+
+WEB_DRIVER = ControlChannelKind("webdriver")
+
+
+@dataclass(frozen=True, slots=True)
+class WebDriverChannelState:
+    session_id: str
+    current_url: str | None = None
+
+
+inspector: ControlChannelInspector[WebDriverChannelState]
+snapshot: ControlChannelSnapshot[WebDriverChannelState]
+```
+
+The extension owns validation that its inspector emits `WEB_DRIVER` snapshots with
+`WebDriverChannelState` details. The core validates shared readiness invariants but
+does not register, discover, or enforce extension-specific kind-to-detail pairs.
+The consuming application explicitly composes the inspector and any associated
+management or execution adapters.
 
 ## Repository ownership
 

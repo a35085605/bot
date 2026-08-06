@@ -4,7 +4,6 @@ from typing import Protocol, TypeVar
 
 from observation.target_runtime.domain.channels import (
     AdbChannelState,
-    ControlChannelDetails,
     ControlChannelSnapshot,
     WindowChannelState,
 )
@@ -14,7 +13,6 @@ from observation.target_runtime.domain.snapshots import TargetRuntimeSnapshot
 
 ControlChannelStateT_co = TypeVar(
     "ControlChannelStateT_co",
-    bound=ControlChannelDetails,
     covariant=True,
 )
 
@@ -25,6 +23,9 @@ class ControlChannelInspector(Protocol[ControlChannelStateT_co]):
     Implementations inspect exactly one configured channel and return its latest
     immutable readiness snapshot. They must not prepare the channel, reconnect a
     transport, change focus, or send input.
+
+    External packages may specialize this protocol with their own detail model
+    and ``ControlChannelKind`` value without modifying the core package.
     """
 
     def inspect(

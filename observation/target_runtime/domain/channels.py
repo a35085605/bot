@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from numbers import Integral
-from typing import Generic, TypeAlias, TypeVar
+from typing import Generic, TypeVar
 
 from geometry.rect import Rect
 from observation.target_runtime.domain.identities import (
@@ -208,17 +208,21 @@ class AdbChannelState:
         object.__setattr__(self, "transport_ready", transport_ready)
 
 
-ControlChannelDetails: TypeAlias = WindowChannelState | AdbChannelState
 ControlChannelStateT_co = TypeVar(
     "ControlChannelStateT_co",
-    bound=ControlChannelDetails,
     covariant=True,
 )
 
 
 @dataclass(frozen=True, slots=True)
 class ControlChannelSnapshot(Generic[ControlChannelStateT_co]):
-    """Immutable readiness snapshot for one target control channel."""
+    """Immutable readiness snapshot for one target control channel.
+
+    ``details`` is generic and intentionally open to external channel packages.
+    A concrete inspector owns the relationship between its channel kind and its
+    detail model; the interaction kernel enforces only platform-neutral snapshot
+    invariants.
+    """
 
     channel_id: ControlChannelId
     kind: ControlChannelKind
@@ -236,20 +240,12 @@ class ControlChannelSnapshot(Generic[ControlChannelStateT_co]):
             raise TypeError("channel kind must be ControlChannelKind")
         if not isinstance(self.status, ControlChannelStatus):
             raise TypeError("channel status must be ControlChannelStatus")
+        if self.details is None:
+            raise TypeError("channel details cannot be None")
         if not isinstance(self.capabilities, frozenset):
             raise TypeError("channel capabilities must be a frozenset")
         if not isinstance(self.blockers, tuple):
             raise TypeError("channel blockers must be a tuple")
-
-        expected_detail_type = {
-            ControlChannelKind.DESKTOP_WINDOW: WindowChannelState,
-            ControlChannelKind.ADB: AdbChannelState,
-        }[self.kind]
-        if not isinstance(self.details, expected_detail_type):
-            raise TypeError(
-                f"{self.kind.value} channel requires "
-                f"{expected_detail_type.__name__}"
-            )
 
         for capability in self.capabilities:
             if not isinstance(capability, ControlCapability):
