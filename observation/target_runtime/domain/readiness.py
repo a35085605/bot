@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from observation.target_runtime.domain.identities import (
     normalize_non_empty_text,
 )
+
+if TYPE_CHECKING:
+    from adb.observation.domain import AdbDeviceStatus
+    from desktop_window.observation.domain import FocusStatus
 
 
 class TargetAvailability(str, Enum):
@@ -57,16 +61,25 @@ class ControlCapability(str, Enum):
     BACK = "back"
 
 
-class FocusStatus(str, Enum):
-    UNKNOWN = "unknown"
-    TARGET = "target"
-    OTHER = "other"
-    NONE = "none"
+def __getattr__(name: str) -> Any:
+    """Lazily retain pre-migration platform status imports."""
+
+    if name == "AdbDeviceStatus":
+        from adb.observation.domain import AdbDeviceStatus
+
+        return AdbDeviceStatus
+    if name == "FocusStatus":
+        from desktop_window.observation.domain import FocusStatus
+
+        return FocusStatus
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-class AdbDeviceStatus(str, Enum):
-    UNKNOWN = "unknown"
-    MISSING = "missing"
-    UNAUTHORIZED = "unauthorized"
-    OFFLINE = "offline"
-    ONLINE = "online"
+__all__ = [
+    "AdbDeviceStatus",
+    "ControlCapability",
+    "ControlChannelKind",
+    "ControlChannelStatus",
+    "FocusStatus",
+    "TargetAvailability",
+]
